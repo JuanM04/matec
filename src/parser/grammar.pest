@@ -1,0 +1,42 @@
+// Primitives
+
+integer = @{ ("+" | "-")? ~ ASCII_DIGIT+ }
+number  = @{ integer ~ ("." ~ ASCII_DIGIT*)? ~ ("e" ~ integer)? }
+
+ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+matrix     = { "[" ~ (expr ~ matrix_sep)* ~ expr? ~ "]" }
+matrix_sep = { "," | ";" }
+
+call = { ident ~ "(" ~ (expr ~ ",")* ~ expr? ~ ")" }
+
+// Numeric expressions
+
+prefix   = _{ positive | negative }
+positive =  { "+" }
+negative =  { "-" }
+
+infix        = _{ add | subtract | multiply | divide | right_divide | power }
+add          =  { "+" }
+subtract     =  { "-" }
+multiply     =  { "*" }
+divide       =  { "/" }
+right_divide =  { "\\" }
+power        =  { "^" }
+
+postfix   = _{ factorial | transpose }
+factorial =  { "!" }
+transpose =  { "'" }
+
+primary = _{ number | matrix | call | ident | "(" ~ expr ~ ")" }
+expr    =  { prefix* ~ primary ~ postfix* ~ (infix ~ prefix* ~ primary ~ postfix*)* }
+
+// Program
+
+assign = { ident ~ "=" ~ expr }
+
+stmt = _{ assign | expr }
+
+program = _{ SOI ~ (stmt ~ ";"+)* ~ stmt? ~ EOI }
+
+WHITESPACE = _{ " " }
