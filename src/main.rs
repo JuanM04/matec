@@ -9,6 +9,7 @@ fn main() {
         let mut input = String::new();
         stdout().flush().unwrap();
         stdin().read_line(&mut input).unwrap();
+        let input = input.trim();
 
         let result = parse(&input);
         if let Ok(ast) = result {
