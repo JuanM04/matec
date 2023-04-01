@@ -50,8 +50,9 @@ ans =   2
 
 | Nombre         | Descripción                    | Implementada |
 | :------------- | :----------------------------- | :----------: |
-| `exit()`       | Termina el programa            |      ❌      |
-| `sqrt()`       | Raíz cuadrada de un número     |      ❌      |
+| `exit`         | Termina el programa            |      ❌      |
+| `clc`          | Limpia la consola              |      ❌      |
+| `sqrt(n)`      | Raíz cuadrada de "n"           |      ❌      |
 | `pow(a, n)`    | "a" a la n-ésima potencia      |      ❌      |
 | `factorial(n)` | "n" factorial                  |      ❌      |
 | `sin(x)`       | Seno de "x"                    |      ❌      |
