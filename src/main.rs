@@ -1,3 +1,4 @@
+mod matrix;
 mod parser;
 
 use parser::parse;
