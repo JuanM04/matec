@@ -1,6 +1,7 @@
 mod parser;
 
 use parser::parse;
+// use core::num::dec2flt::number::Number;
 use std::io::{stdin, stdout, Write};
 
 use crate::parser::AstNode;
@@ -29,7 +30,7 @@ fn main() {
             //print_type_of(&ast[0]);
             //print_type_of(&ast[0].expr);
             for n in &ast {
-                println!("Result: {}",print_expr(&n.expr));
+                println!("Result: {}",evaluate_expr_without_matrix(&n.expr));
             }
         } else {
             println!("Error: {:#?}", result);
@@ -38,23 +39,28 @@ fn main() {
 }
 
 
-fn print_expr(node: &AstNode) -> f64 {
+fn evaluate_expr_without_matrix(node: &AstNode) -> f64 {
     match node {
         AstNode::Number(n) => {
             return *n;
         },
+        AstNode::Matrix(A) => evaluate_matrix(A),
         AstNode::UnaryOp {op, expr} => {
             match op {
-                parser::UnaryOp::Positive => return print_expr(expr),
-                parser::UnaryOp::Negate => return print_expr(expr) * -1.0,
-                parser::UnaryOp::Factorial => return calculate_factorial(print_expr(expr)) as f64,
-                parser::UnaryOp::Transpose => return print_expr(expr), // Todo chequar que esto sea una matriz y 
+                parser::UnaryOp::Positive => return evaluate_expr_without_matrix(expr),
+                parser::UnaryOp::Negate => return evaluate_expr_without_matrix(expr) * -1.0,
+                parser::UnaryOp::Factorial => return calculate_factorial(evaluate_expr_without_matrix(expr)) as f64,
+                parser::UnaryOp::Transpose => {
+                    print_type_of(expr);
+                    calculate_transpose(expr);
+                    return 2.71;
+                }, // Todo chequar que esto sea una matriz y 
             }
         }
         AstNode::BinaryOp {left, op, right} => {
             
-            let iz = print_expr(left);
-            let de = print_expr(right);
+            let iz = evaluate_expr_without_matrix(left);
+            let de = evaluate_expr_without_matrix(right);
             match op {
                 parser::BinaryOp::Add => return iz + de,
                 parser::BinaryOp::Subtract => return iz - de,
@@ -97,6 +103,49 @@ fn calculate_factorial(num: f64) -> u64 {
         factorial *= n;
     }
     
-    return factorial 
-    
+    factorial 
 }
+
+fn calculate_transpose(node: &AstNode){
+    println!("Ingreso CalculateTranspose");
+    print_type_of(node);
+    match node {
+        AstNode::Matrix(A) => print_type_of(A),
+        _ => println!("No matriz"),
+    }
+} 
+
+/* fn calculate_transpose_matrix(matrix: Vec<Vec<f64>>) -> Vec<Vec<f64>> {
+    let rows = matrix.len();
+    let columns = matrix[0].len();
+    
+    let mut transpose = vec![vec![0.0; rows]; columns];
+    
+    for i in 0..rows {
+        for j in 0..columns {
+            transpose[j][i] = matrix[i][j];
+        }
+    }
+    
+    transpose
+} */
+
+
+fn evaluate_matrix (matrix: &Vec<Vec<AstNode>>) {
+    let rows:usize = matrix.len();
+    let columns:usize = matrix[0].len();
+    
+    println!("Tipo de Matriz");
+    print_type_of(&matrix);
+    println!("Tipo de Matriz[0]");
+    print_type_of(&matrix[0]);
+    println!("Tipo de Matriz[0][0]");
+    print_type_of(&matrix[0][0]);
+
+    for i in 0..rows {
+        for j in 0..columns {
+            println!("Numero que deberia guardarse en la posicion [{}][{}]: {}",i,j,evaluate_expr_without_matrix(&matrix[i][j]));
+        }
+    }
+
+} 
