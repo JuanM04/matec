@@ -47,7 +47,7 @@ pub enum AstNode {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Statement {
     assign_to: Option<String>,
-    expr: AstNode,
+    pub expr: AstNode,
 }
 
 lazy_static::lazy_static! {
