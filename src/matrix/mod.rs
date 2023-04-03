@@ -1,5 +1,6 @@
 // En este archivo se implementa la estructura de datos `Matrix` y sus métodos.
 
+mod display;
 mod iter;
 
 /// Cada elemento de la matriz es un `double` (punto flotante de 64 bits)
@@ -86,6 +87,32 @@ impl Matrix {
     /// Obtiene el número de columnas de la matriz.
     pub fn cols(&self) -> usize {
         self.cols
+    }
+
+    /// Retorna `true` si la matriz es cuadrada.
+    pub fn is_square(&self) -> bool {
+        self.rows == self.cols
+    }
+
+    /// Retorna `true` si la matriz es una matriz identidad.
+    pub fn is_identity(&self) -> bool {
+        if !self.is_square() {
+            return false;
+        }
+
+        for (i, j, val) in self {
+            if i == j && val != 1.0 {
+                return false;
+            } else if i != j && val != 0.0 {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Retorna `true` si es una matriz 1x1.
+    pub fn is_number(&self) -> bool {
+        self.rows == 1 && self.cols == 1
     }
 
     /// Suma dos matrices y retorna una nueva matriz.
