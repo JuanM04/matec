@@ -164,4 +164,65 @@ impl Matrix {
         }
         result
     }
+
+    /// Retorna la determinante
+    pub fn determinante(&self) -> Result<f64, &'static str> {
+        // La matriz debe ser cuadrada para calcular el determinante
+        if !self.is_square() {
+            return Err(
+                "El determinante solo se puede calcular para matrices cuadradas.",
+            );
+        }
+
+        let rows = self.rows;
+        let mut det = 1.0;
+
+        // Copia de la matriz para no modificar la original
+        // ? wow, self,data.clone() esta buenisimo, lo pasa a un vector
+        let mut matrix = self.data.clone();
+        
+        for k in 0..rows-1 {
+            // Busqueda la fila con el valor absoluto máximo en la columna k
+            let mut i_max = k;
+            for i in k+1..rows {
+                if matrix[i*rows + k].abs() > matrix[i_max*rows + k].abs() {
+                    i_max = i;
+                }
+            }
+
+            // Intercambio la fila i_max con la fila k si i_max != k
+            if i_max != k {
+                for j in k..rows {
+                    let tmp = matrix[k*rows + j];
+                    matrix[k*rows + j] = matrix[i_max*rows + j];
+                    matrix[i_max*rows + j] = tmp;
+                }
+                det = -det;
+            }
+
+            // Si el elemento diagonal es cero, la matriz es singular y el determinante es cero
+            if matrix[k*rows + k] == 0.0 {
+                return Ok(0.0);
+            }
+
+            // Eliminación gaussiana de la columna k
+            for i in k+1..rows {
+                let factor = matrix[i*rows + k] / matrix[k*rows + k];
+                for j in k+1..rows {
+                    matrix[i*rows + j] -= factor * matrix[k*rows + j];
+                }
+                matrix[i*rows + k] = 0.0;
+            }
+
+            // Actualizar el determinante
+            det *= matrix[k*rows + k];
+        }
+
+        det *= matrix[(rows-1)*rows + rows-1];
+        Ok(det)
+    } 
+
+
+    
+
 }
