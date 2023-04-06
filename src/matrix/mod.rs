@@ -165,64 +165,177 @@ impl Matrix {
         result
     }
 
-    /// Retorna la determinante
-    pub fn determinante(&self) -> Result<f64, &'static str> {
-        // La matriz debe ser cuadrada para calcular el determinante
+    /// Retorna el determinante de la matriz.
+    pub fn determinant(&self) -> Result<f64, &'static str> {
+        // La matriz debe ser cuadrada
         if !self.is_square() {
-            return Err(
-                "El determinante solo se puede calcular para matrices cuadradas.",
-            );
+            return Err("El determinante solo se puede calcular para matrices cuadradas.");
         }
 
         let rows = self.rows;
-        let mut det = 1.0;
+        let cols = self.cols;
 
-        // Copia de la matriz para no modificar la original
-        // ? wow, self,data.clone() esta buenisimo, lo pasa a un vector
-        let mut matrix = self.data.clone();
-        
-        for k in 0..rows-1 {
-            // Busqueda la fila con el valor absoluto máximo en la columna k
-            let mut i_max = k;
-            for i in k+1..rows {
-                if matrix[i*rows + k].abs() > matrix[i_max*rows + k].abs() {
-                    i_max = i;
-                }
-            }
-
-            // Intercambio la fila i_max con la fila k si i_max != k
-            if i_max != k {
-                for j in k..rows {
-                    let tmp = matrix[k*rows + j];
-                    matrix[k*rows + j] = matrix[i_max*rows + j];
-                    matrix[i_max*rows + j] = tmp;
-                }
-                det = -det;
-            }
-
-            // Si el elemento diagonal es cero, la matriz es singular y el determinante es cero
-            if matrix[k*rows + k] == 0.0 {
-                return Ok(0.0);
-            }
-
-            // Eliminación gaussiana de la columna k
-            for i in k+1..rows {
-                let factor = matrix[i*rows + k] / matrix[k*rows + k];
-                for j in k+1..rows {
-                    matrix[i*rows + j] -= factor * matrix[k*rows + j];
-                }
-                matrix[i*rows + k] = 0.0;
-            }
-
-            // Actualizar el determinante
-            det *= matrix[k*rows + k];
+        // Copio la matriz original
+        let mut matrix = Matrix::new(rows, cols);
+        for (i, j, val) in self {
+            matrix.set(i, j, val).unwrap();
         }
 
-        det *= matrix[(rows-1)*rows + rows-1];
-        Ok(det)
+        // El resultado de la determinante es un float
+        let mut determinante = 1.0;
+
+        // Evaluo cada fila
+        for k in 0..rows {
+            // Comparo la fila k con las siguientes
+            for i in k + 1..rows {
+                // Busco la relacion que hay entre la fila k y la fila i
+                let factor = matrix.get(i, k).unwrap() / matrix.get(k, k).unwrap();
+
+                // Resto a cada columna de la fila i los valores de la fila k multiplicados por el factor
+                // fj + factor * fi
+                for j in k..cols {
+                    let new_value = matrix.get(i, j).unwrap() - factor * matrix.get(k, j).unwrap();
+                    matrix.set(i, j, new_value).unwrap();
+                }
+
+                // Si el factor es negativo multiplico el determinante por -1
+                // if factor.abs() != factor {
+                //     determinante = -determinante;
+                // }
+
+                // matrix.set(i, k, 0.0).unwrap();
+            }
+
+            // A  ctualizo el determinante
+            determinante *= matrix.get(k, k).unwrap();
+        }
+        // println!("Final Matrix: {}",matrix);
+        // tranquilamente aca se puede hacer un for k in 0..rows determinante *= matrix[k][k]
+        Ok(determinante)
+    }
+
+    /// Retorna la inversa calculada con Gauss Jhordan
+    pub fn inverse(&self) -> Result<Matrix, &'static str> {
+        if !self.is_square() || self.determinant() == Ok(0.0) {
+            return Err(
+                "La inversa de una matriz solo se puede calcular si su determinte es distinto de cero."
+            );
+        }
+
+        // Configuro variables
+        let rows = self.rows;
+        let cols = self.cols;
+
+        let mut original = Matrix::new(rows, cols);
+        for (i, j, val) in self {
+            original.set(i, j, val).unwrap();
+        }
+
+        let mut inverse = Matrix::new(rows, cols);
+        for i in 0..rows {
+            for j in 0..cols {
+                if i == j {
+                    inverse.set(i, j, 1.0).unwrap();
+                } else {
+                    inverse.set(i, j, 0.0).unwrap();
+                }
+            }
+        }
+
+        // Llevo el trianulo inferior a 0
+        for k in 0..rows {
+            for i in k + 1..rows {
+                let factor = original.get(i, k).unwrap() / original.get(k, k).unwrap();
+                for j in k..cols {
+                    let new_value_original =
+                        original.get(i, j).unwrap() - factor * original.get(k, j).unwrap();
+                    let new_value_inverse =
+                        inverse.get(i, j).unwrap() - factor * inverse.get(k, j).unwrap();
+                    original.set(i, j, new_value_original).unwrap();
+                    inverse.set(i, j, new_value_inverse).unwrap();
+                }
+            }
+        }
+
+        // llevo la diagonal a 1
+        for k in 0..rows {
+            let factor = 1.0 / original.get(k, k).unwrap();
+            for i in 0..cols {
+                original
+                    .set(k, i, factor * original.get(k, i).unwrap())
+                    .unwrap();
+                inverse
+                    .set(k, i, factor * inverse.get(k, i).unwrap())
+                    .unwrap();
+            }
+        }
+
+
+        /*// Llevo el trianulo superor (inferior de la traspuesnta) a 0
+        for k in (1..rows).rev() {
+            // println!("Fila k {}", k);
+            let mut i: usize = k;
+            while i > 0 {
+                i -= 1;
+                // println!("Fila i {}", i);
+                println!("Inversa: {}",inverse);
+                let factor = original.get(i, k).unwrap();
+                // println!("Factor: {} posicion {} {}\n", factor, i, k);
+                for j in (0..cols).rev() {
+                    // println!("i {}, j {}",i,j);
+                    let new_value_original =
+                        original.get(i, j).unwrap() - factor * original.get(k, j).unwrap();
+                    let new_value_inverse =
+                        inverse.get(i, j).unwrap() - factor * inverse.get(k, j).unwrap();
+                    // println!("original[{}][{}] = {}",i,j,new_value_original);
+                    // println!("inverse[{}][{}] = {}",i,j,new_value_inverse);
+                    original.set(i, j, new_value_original).unwrap();
+                    inverse.set(i, j, new_value_inverse).unwrap();
+                    // println!("Original Movimiento Columna {} {}",j,original);
+                    // println!("Invertida Movimiento Columna {} {}",j,inverse);
+                }
+            }
+        } */
+
+        // let mut t = Matrix::new(rows,cols);
+        // for (row,col,val) in &original.transpose() {
+        //     t.set(row, col, val).unwrap();
+        // }
+
+
+        println!("Pre triangulo superior");
+        println!("Original: {}",original);
+        // println!("Traspuesta: {}",t);
+        println!("Inversa: {}",inverse);
+
+
+        for k in (0..rows).rev() {
+            println!("\nEvaluo de la fila k {} hacia atras", k);
+            for i in (0..k).rev() {
+                println!("Evaluo fila i {}",i);
+
+                println!("Original: {}",original);
+                println!("Inversa: {}",inverse);
+
+
+                let factor = original.get(i, k).unwrap();
+                println!("Busco el factor {}",factor);
+                println!("f{} - {}*f{}",i,factor,k);
+                for j in 0..cols {
+                    let n_v_original = original.get(i,j).unwrap() - factor * original.get(k,j).unwrap();
+                    let n_v_inverse = inverse.get(i,j).unwrap() - factor * inverse.get(k,j).unwrap();
+                    original.set(i, j, n_v_original).unwrap();
+                    inverse.set(i, j, n_v_inverse).unwrap();
+                }
+            }
+        }
+
+
+
+        println!("Original: {}",original);
+        // println!("Traspuesta: {}",t);
+        println!("Inversa: {}",inverse);
+
+        Ok(inverse)
     } 
-
-
-    
-
 }
