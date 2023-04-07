@@ -1,3 +1,6 @@
+// Aquí está el código que pasa cada línea de entrada en
+// texto plano a una estructura de datos más manejable.
+
 use pest::iterators::Pairs;
 use pest::pratt_parser::PrattParser;
 use pest::Parser;
@@ -26,8 +29,8 @@ pub enum BinaryOp {
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum AstNode {
-    Number(f64),
     Ident(String),
+    Scalar(f64),
     Matrix(Vec<Vec<AstNode>>),
     Call {
         func: String,
@@ -46,7 +49,7 @@ pub enum AstNode {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Statement {
-    assign_to: Option<String>,
+    pub assign_to: Option<String>,
     pub expr: AstNode,
 }
 
@@ -71,7 +74,7 @@ fn parse_expr(pairs: Pairs<Rule>) -> AstNode {
     PRATT_PARSER
         .map_primary(|primary| match primary.as_rule() {
             Rule::expr => parse_expr(primary.into_inner()),
-            Rule::number => AstNode::Number(primary.as_str().parse::<f64>().unwrap()),
+            Rule::number => AstNode::Scalar(primary.as_str().parse::<f64>().unwrap()),
             Rule::ident => AstNode::Ident(primary.as_str().to_string()),
             Rule::matrix => {
                 let mut pair = primary.into_inner();

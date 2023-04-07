@@ -1,17 +1,28 @@
+mod functions;
 mod matrix;
 mod parser;
+mod value;
 
-use parser::parse;
-// use core::num::dec2flt::number::Number;
+use functions::scalars;
+use matrix::Matrix;
+use parser::{parse, AstNode};
 use std::io::{stdin, stdout, Write};
-
-use crate::parser::AstNode;
-
-fn print_type_of<T>(_: &T) {
-    println!("Type of: \n{:#?}\n", std::any::type_name::<T>())
-}
+use value::Value;
 
 fn main() {
+    println!("#===========================#");
+    println!("# Clon sin nombre de Matlab #");
+    println!("#===========================#");
+    println!("");
+    println!("Por Majoros, Lorenzo; y Seery, Juan Martín");
+    println!("Para Matemática C - 2023");
+    println!("");
+    println!("");
+    println!("Para ayuda, escriba \"help\"");
+    println!("Para salir, escriba \"exit\"");
+    println!("");
+    println!("");
+
     loop {
         print!("> ");
         let mut input = String::new();
@@ -20,133 +31,145 @@ fn main() {
         let input = input.trim();
 
         if input == "exit" {
-            println!("\n[!] Saliendo... \n\n");
-            break
+            break;
         }
 
         let result = parse(&input);
         if let Ok(ast) = result {
-            println!("Parsed! {:#?}", ast);
-            //print_type_of(&ast);
-            //print_type_of(&ast[0]);
-            //print_type_of(&ast[0].expr);
             for n in &ast {
-                println!("Result: {}",evaluate_expr_without_matrix(&n.expr));
+                match evaluate_expression(&n.expr) {
+                    Ok(ans) => println!("ans = {}", ans),
+                    Err(e) => println!("Error: {}", e),
+                }
             }
         } else {
-            println!("Error: {:#?}", result);
+            println!("Error de sintáxis: {:#?}", result);
         }
     }
 }
 
+type ExprResult = Result<Value, String>;
 
-fn evaluate_expr_without_matrix(node: &AstNode) -> f64 {
-    match node {
-        AstNode::Number(n) => {
-            return *n;
-        },
-        AstNode::Matrix(A) => evaluate_matrix(A),
-        AstNode::UnaryOp {op, expr} => {
-            match op {
-                parser::UnaryOp::Positive => return evaluate_expr_without_matrix(expr),
-                parser::UnaryOp::Negate => return evaluate_expr_without_matrix(expr) * -1.0,
-                parser::UnaryOp::Factorial => return calculate_factorial(evaluate_expr_without_matrix(expr)) as f64,
-                parser::UnaryOp::Transpose => {
-                    print_type_of(expr);
-                    calculate_transpose(expr);
-                    return 2.71;
-                }, // Todo chequar que esto sea una matriz y 
+fn evaluate_expression(expr: &AstNode) -> ExprResult {
+    match expr {
+        AstNode::Ident(s) => unimplemented!(),
+        AstNode::Scalar(n) => Ok(Value::Scalar(*n)),
+        AstNode::Matrix(vec) => {
+            let rows = vec.len();
+            if rows == 0 {
+                return Ok(Value::Matrix(Matrix::new(0, 0)));
             }
+            let cols = vec[0].len();
+            let mut matrix = Matrix::new(rows, cols);
+            for (i, row) in vec.iter().enumerate() {
+                for (j, col) in row.iter().enumerate() {
+                    if j + 1 > cols {
+                        return Err(
+                            "La matriz está mal declarada: el número de columnas no es consistente"
+                                .to_string(),
+                        );
+                    }
+
+                    match evaluate_expression(col) {
+                        Ok(Value::Scalar(n)) => matrix.set(i, j, n).unwrap(),
+                        Ok(Value::Matrix(_)) => {
+                            return Err(
+                                "No se puede declarar una matriz dentro de otra matriz".to_string()
+                            )
+                        }
+                        Err(e) => return Err(e),
+                    };
+                }
+            }
+            Ok(Value::Matrix(matrix))
         }
-        AstNode::BinaryOp {left, op, right} => {
-            
-            let iz = evaluate_expr_without_matrix(left);
-            let de = evaluate_expr_without_matrix(right);
+        AstNode::Call { func, args } => unimplemented!(),
+        AstNode::UnaryOp { op, expr } => {
+            let value = evaluate_expression(expr)?;
             match op {
-                parser::BinaryOp::Add => return iz + de,
-                parser::BinaryOp::Subtract => return iz - de,
-                parser::BinaryOp::Multiply => return iz * de,
-                parser::BinaryOp::Divide => {
-                    if de != 0.0 {    
-                        return iz / de;
-                    } else {
-                        panic!("[!] No se puede dividir por cero!!!");
+                parser::UnaryOp::Positive => Ok(value),
+                parser::UnaryOp::Negate => match value {
+                    Value::Scalar(n) => Ok(Value::Scalar(-n)),
+                    Value::Matrix(a) => Ok(Value::Matrix(a.scale(-1.0))),
+                },
+                parser::UnaryOp::Factorial => match value {
+                    Value::Scalar(n) => {
+                        let factorial = scalars::factorial(n)?;
+                        Ok(Value::Scalar(factorial))
+                    }
+                    Value::Matrix(_) => {
+                        Err("No se puede calcular el factorial de una matriz".to_string())
                     }
                 },
-                parser::BinaryOp::Power => return iz.powf(de),
-                parser::BinaryOp::RightDivide => {
-                    if iz != 0.0 {
-                        return de / iz;
-                    } else {
-                        panic!("[!] No se puede dividir por cero!!!");
+                parser::UnaryOp::Transpose => match value {
+                    Value::Scalar(_) => {
+                        Err("No se puede calcular la traspuesta de un número".to_string())
                     }
+                    Value::Matrix(a) => Ok(Value::Matrix(a.transpose())),
                 },
             }
         }
-        _ => println!("otra cosa"),
-    }
-    println!("\n");
-    3.14
-}
-
-
-fn calculate_factorial(num: f64) -> u64 {
-
-    let mut factorial: u64 = 1;
-    let num_int: u64 = num.trunc() as u64;
-
-    if num.fract() != 0.0 {
-        // TODO decidir que hacer cuando uno no es muy bueno en las matematicas
-        eprintln!("[!] El número {} tiene decimales, no se puede calcular Factorial.\n    Se calculara el factorial del entero redondeado abajo: {}.", num, num_int);
-    } 
-    
-    for n in 2..=num_int {
-        factorial *= n;
-    }
-    
-    factorial 
-}
-
-fn calculate_transpose(node: &AstNode){
-    println!("Ingreso CalculateTranspose");
-    print_type_of(node);
-    match node {
-        AstNode::Matrix(A) => print_type_of(A),
-        _ => println!("No matriz"),
-    }
-} 
-
-/* fn calculate_transpose_matrix(matrix: Vec<Vec<f64>>) -> Vec<Vec<f64>> {
-    let rows = matrix.len();
-    let columns = matrix[0].len();
-    
-    let mut transpose = vec![vec![0.0; rows]; columns];
-    
-    for i in 0..rows {
-        for j in 0..columns {
-            transpose[j][i] = matrix[i][j];
+        AstNode::BinaryOp { left, op, right } => {
+            let left = evaluate_expression(left)?;
+            let right = evaluate_expression(right)?;
+            match op {
+                parser::BinaryOp::Add => match (left, right) {
+                    (Value::Scalar(a), Value::Scalar(b)) => Ok(Value::Scalar(a + b)),
+                    (Value::Matrix(a), Value::Matrix(b)) => Ok(Value::Matrix(a.add(&b)?)),
+                    _ => Err("No se puede sumar matrices con números".to_string()),
+                },
+                parser::BinaryOp::Subtract => match (left, right) {
+                    (Value::Scalar(a), Value::Scalar(b)) => Ok(Value::Scalar(a - b)),
+                    (Value::Matrix(a), Value::Matrix(b)) => {
+                        Ok(Value::Matrix(a.add(&b.scale(-1.0))?))
+                    }
+                    _ => Err("No se puede restar matrices con números".to_string()),
+                },
+                parser::BinaryOp::Multiply => return multiply(&left, &right),
+                parser::BinaryOp::Divide => match right {
+                    Value::Scalar(right) => {
+                        if right == 0.0 {
+                            return Err("No se puede dividir por cero".to_string());
+                        }
+                        multiply(&left, &Value::Scalar(1.0 / right))
+                    }
+                    Value::Matrix(a) => {
+                        let right = a.inverse()?;
+                        multiply(&left, &Value::Matrix(right))
+                    }
+                },
+                parser::BinaryOp::RightDivide => match left {
+                    Value::Scalar(left) => {
+                        if left == 0.0 {
+                            return Err("No se puede dividir por cero".to_string());
+                        }
+                        multiply(&Value::Scalar(1.0 / left), &right)
+                    }
+                    Value::Matrix(A) => {
+                        let left = A.inverse()?;
+                        multiply(&Value::Matrix(left), &right)
+                    }
+                },
+                parser::BinaryOp::Power => {
+                    if let Value::Scalar(right) = right {
+                        match left {
+                            Value::Scalar(left) => Ok(Value::Scalar(scalars::pow(left, right))),
+                            Value::Matrix(a) => unimplemented!(),
+                        }
+                    } else {
+                        Err("La potencia no puede ser una matriz".to_string())
+                    }
+                }
+            }
         }
     }
-    
-    transpose
-} */
+}
 
-
-fn evaluate_matrix (matrix: &Vec<Vec<AstNode>>) {
-    let rows:usize = matrix.len();
-    let columns:usize = matrix[0].len();
-    
-    println!("Tipo de Matriz");
-    print_type_of(&matrix);
-    println!("Tipo de Matriz[0]");
-    print_type_of(&matrix[0]);
-    println!("Tipo de Matriz[0][0]");
-    print_type_of(&matrix[0][0]);
-
-    for i in 0..rows {
-        for j in 0..columns {
-            println!("Numero que deberia guardarse en la posicion [{}][{}]: {}",i,j,evaluate_expr_without_matrix(&matrix[i][j]));
-        }
+fn multiply(left: &Value, right: &Value) -> ExprResult {
+    match (left, right) {
+        (Value::Scalar(a), Value::Scalar(b)) => Ok(Value::Scalar(a * b)),
+        (Value::Matrix(a), Value::Matrix(b)) => Ok(Value::Matrix(a.mul(&b)?)),
+        (Value::Scalar(a), Value::Matrix(b)) => Ok(Value::Matrix(b.scale(*a))),
+        (Value::Matrix(a), Value::Scalar(b)) => Ok(Value::Matrix(a.scale(*b))),
     }
-
-} 
+}

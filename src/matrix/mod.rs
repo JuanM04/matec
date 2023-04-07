@@ -110,11 +110,6 @@ impl Matrix {
         true
     }
 
-    /// Retorna `true` si es una matriz 1x1.
-    pub fn is_number(&self) -> bool {
-        self.rows == 1 && self.cols == 1
-    }
-
     /// Suma dos matrices y retorna una nueva matriz.
     pub fn add(&self, right: &Matrix) -> Result<Matrix, &'static str> {
         if self.rows != right.rows || self.cols != right.cols {
@@ -161,6 +156,14 @@ impl Matrix {
         let mut result = Matrix::new(self.cols, self.rows);
         for (i, j, val) in self {
             result.set(j, i, val).unwrap();
+        }
+        result
+    }
+
+    pub fn scale(&self, scalar: MatrixItem) -> Matrix {
+        let mut result = Matrix::new(self.rows, self.cols);
+        for (i, j, val) in self {
+            result.set(i, j, val * scalar).unwrap();
         }
         result
     }
@@ -268,8 +271,7 @@ impl Matrix {
                     .set(k, i, factor * inverse.get(k, i).unwrap())
                     .unwrap();
             }
-        } 
-
+        }
 
         /*// Llevo el trianulo superor (inferior de la traspuesnta) a 0
         for k in (1..rows).rev() {
@@ -302,12 +304,10 @@ impl Matrix {
         //     t.set(row, col, val).unwrap();
         // }
 
-
         println!("Pre triangulo superior");
-        println!("Original: {}",original);
+        println!("Original: {}", original);
         // println!("Traspuesta: {}",t);
-        println!("Inversa: {}",inverse);
-
+        println!("Inversa: {}", inverse);
 
         // let mut original_traspuesta = Matrix::new(rows, cols);
         // for (row, col, val) in &original.transpose() {
@@ -324,7 +324,12 @@ impl Matrix {
             for i in (0..k).rev() {
                 println!("Fila i {}", i);
                 let factor = original.get(i, k).unwrap() / original.get(k, k).unwrap();
-                println!("Factor : {} = {} / {}", factor, original.get(i, k).unwrap(), original.get(k, k).unwrap());
+                println!(
+                    "Factor : {} = {} / {}",
+                    factor,
+                    original.get(i, k).unwrap(),
+                    original.get(k, k).unwrap()
+                );
                 println!("f{} - {}f{}", i, factor, k);
                 println!("");
                 println!("{} {}", original, inverse);
@@ -356,11 +361,11 @@ impl Matrix {
         //     }
         // }
 
-        println!("Original: {}",original);
+        println!("Original: {}", original);
         // println!("Traspuesta: {}",original_traspuesta);
-        println!("Inversa: {}",inverse);
+        println!("Inversa: {}", inverse);
         // println!("Inverse T: {}",inverse_traspuesta);
 
         Ok(inverse)
-    } 
+    }
 }
