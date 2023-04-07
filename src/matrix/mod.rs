@@ -167,7 +167,6 @@ impl Matrix {
         }
         result
     }
-
     /// Retorna el determinante de la matriz.
     pub fn determinant(&self) -> Result<f64, &'static str> {
         // La matriz debe ser cuadrada
@@ -189,31 +188,43 @@ impl Matrix {
 
         // Evaluo cada fila
         for k in 0..rows {
+            // busco el pivote
+            let mut i_max = k;
+            for i in k + 1..rows {
+                if matrix.get(i, k).unwrap().abs() > matrix.get(i_max, k).unwrap().abs() {
+                    for j in 0..cols {
+                        let tmp = matrix.get(i_max, j).unwrap();
+                        matrix.set(i_max, j, matrix.get(i, j).unwrap()).unwrap();
+                        matrix.set(i, j, tmp).unwrap();
+                    }
+                    i_max = i;
+                    determinante = -determinante;
+                }
+            }
+
             // Comparo la fila k con las siguientes
             for i in k + 1..rows {
                 // Busco la relacion que hay entre la fila k y la fila i
                 let factor = matrix.get(i, k).unwrap() / matrix.get(k, k).unwrap();
 
                 // Resto a cada columna de la fila i los valores de la fila k multiplicados por el factor
-                // fj + factor * fi
-                for j in k..cols {
+                // fi - factor * fk
+                for j in 0..cols {
                     let new_value = matrix.get(i, j).unwrap() - factor * matrix.get(k, j).unwrap();
                     matrix.set(i, j, new_value).unwrap();
                 }
-
-                // Si el factor es negativo multiplico el determinante por -1
-                // if factor.abs() != factor {
-                //     determinante = -determinante;
-                // }
-
-                // matrix.set(i, k, 0.0).unwrap();
             }
 
             // A  ctualizo el determinante
             determinante *= matrix.get(k, k).unwrap();
         }
+
+        // determinante = 1.0;
+        // for k in 0..rows {
+        //     determinante *= matrix.get(k, k).unwrap();
+        // }
+
         // println!("Final Matrix: {}",matrix);
-        // tranquilamente aca se puede hacer un for k in 0..rows determinante *= matrix[k][k]
         Ok(determinante)
     }
 
@@ -247,8 +258,29 @@ impl Matrix {
 
         // Llevo el trianulo inferior a 0
         for k in 0..rows {
+            // Busco el pivote
+            let mut i_max = k;
             for i in k + 1..rows {
+                // si el primer indice de la fila es mayor al de la fila k se rota para que
+                //   en la fila k que de la fila con mayor indice
+                if original.get(i, k).unwrap().abs() > original.get(i_max, k).unwrap().abs() {
+                    for j in 0..cols {
+                        let tmp = original.get(i_max, j).unwrap();
+                        original.set(i_max, j, original.get(i, j).unwrap()).unwrap();
+                        original.set(i, j, tmp).unwrap();
+                        let tmp = inverse.get(i_max, j).unwrap();
+                        inverse.set(i_max, j, inverse.get(i, j).unwrap()).unwrap();
+                        inverse.set(i, j, tmp).unwrap();
+                    }
+                    i_max = i;
+                }
+            }
+
+            // Llevo el triangulo inferior a 0
+            for i in k + 1..rows {
+                // obtengo la relacion entre la fila k y la fila i
                 let factor = original.get(i, k).unwrap() / original.get(k, k).unwrap();
+                // fi - factor * fk
                 for j in k..cols {
                     let new_value_original =
                         original.get(i, j).unwrap() - factor * original.get(k, j).unwrap();
@@ -262,7 +294,9 @@ impl Matrix {
 
         // llevo la diagonal a 1
         for k in 0..rows {
+            // obtengo el inverso
             let factor = 1.0 / original.get(k, k).unwrap();
+            // multiplico cada undice de la fila por el factor para que quede en 1
             for i in 0..cols {
                 original
                     .set(k, i, factor * original.get(k, i).unwrap())
@@ -272,67 +306,14 @@ impl Matrix {
                     .unwrap();
             }
         }
-
-        /*// Llevo el trianulo superor (inferior de la traspuesnta) a 0
-        for k in (1..rows).rev() {
-            // println!("Fila k {}", k);
-            let mut i: usize = k;
-            while i > 0 {
-                i -= 1;
-                // println!("Fila i {}", i);
-                println!("Inversa: {}",inverse);
-                let factor = original.get(i, k).unwrap();
-                // println!("Factor: {} posicion {} {}\n", factor, i, k);
-                for j in (0..cols).rev() {
-                    // println!("i {}, j {}",i,j);
-                    let new_value_original =
-                        original.get(i, j).unwrap() - factor * original.get(k, j).unwrap();
-                    let new_value_inverse =
-                        inverse.get(i, j).unwrap() - factor * inverse.get(k, j).unwrap();
-                    // println!("original[{}][{}] = {}",i,j,new_value_original);
-                    // println!("inverse[{}][{}] = {}",i,j,new_value_inverse);
-                    original.set(i, j, new_value_original).unwrap();
-                    inverse.set(i, j, new_value_inverse).unwrap();
-                    // println!("Original Movimiento Columna {} {}",j,original);
-                    // println!("Invertida Movimiento Columna {} {}",j,inverse);
-                }
-            }
-        } */
-
-        // let mut t = Matrix::new(rows,cols);
-        // for (row,col,val) in &original.transpose() {
-        //     t.set(row, col, val).unwrap();
-        // }
-
-        println!("Pre triangulo superior");
-        println!("Original: {}", original);
-        // println!("Traspuesta: {}",t);
-        println!("Inversa: {}", inverse);
-
-        // let mut original_traspuesta = Matrix::new(rows, cols);
-        // for (row, col, val) in &original.transpose() {
-        //     original_traspuesta.set(row, col, val).unwrap();
-        // }
-        // let mut inverse_traspuesta = Matrix::new(rows, cols);
-        // for (row, col, val) in &inverse.transpose() {
-        //     inverse_traspuesta.set(row, col, val).unwrap();
-        // }
-
         // Llevo el trianulo superior a 0
+        // recorro cada fila de abajo hacia arriba
         for k in (0..rows).rev() {
-            println!("\nFila k {}", k);
+            // recorro las filas de arriba a k
             for i in (0..k).rev() {
-                println!("Fila i {}", i);
-                let factor = original.get(i, k).unwrap() / original.get(k, k).unwrap();
-                println!(
-                    "Factor : {} = {} / {}",
-                    factor,
-                    original.get(i, k).unwrap(),
-                    original.get(k, k).unwrap()
-                );
-                println!("f{} - {}f{}", i, factor, k);
-                println!("");
-                println!("{} {}", original, inverse);
+                // obtengo el factor entre la fila k y la fila i
+                let factor = original.get(i, k).unwrap();
+                // resto a la fila i factor veces la fila k
                 for j in 0..cols {
                     let new_value_original =
                         original.get(i, j).unwrap() - factor * original.get(k, j).unwrap();
@@ -343,29 +324,6 @@ impl Matrix {
                 }
             }
         }
-
-        // for (row, col, val) in &inverse_traspuesta.transpose() {
-        //     inverse.set(row, col, val).unwrap();
-        // }
-
-        // llevo la diagonal a 1
-        // for k in 0..rows {
-        //     let factor = 1.0 / original.get(k, k).unwrap();
-        //     for i in 0..cols {
-        //         original
-        //             .set(k, i, factor * original.get(k, i).unwrap())
-        //             .unwrap();
-        //         inverse
-        //             .set(k, i, factor * inverse.get(k, i).unwrap())
-        //             .unwrap();
-        //     }
-        // }
-
-        println!("Original: {}", original);
-        // println!("Traspuesta: {}",original_traspuesta);
-        println!("Inversa: {}", inverse);
-        // println!("Inverse T: {}",inverse_traspuesta);
-
         Ok(inverse)
     }
 }
