@@ -46,7 +46,7 @@ fn main() {
         if input == "exit" {
             break;
         } else if input == "clc" {
-            println!("\x1B[2J\x1B[1;1H");
+            print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
             continue;
         }
 
