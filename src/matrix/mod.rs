@@ -43,15 +43,6 @@ impl Matrix {
         }
     }
 
-    /// Crea una matriz identidad de MxM elementos.
-    pub fn identity(size: usize) -> Matrix {
-        let mut matrix = Matrix::new(size, size);
-        for i in 0..size {
-            matrix.data[i * size + i] = 1.0;
-        }
-        matrix
-    }
-
     /// Crea una matriz a partir de un vector de vectores. Útil cuando se
     /// quiere crear una matriz a partir de datos de entrada.
     pub fn from_2d(nested_vec: Vec<Vec<MatrixItem>>) -> Result<Matrix, &'static str> {
@@ -75,6 +66,47 @@ impl Matrix {
                 matrix.data[i * cols + j] = val;
             }
         }
+        Ok(matrix)
+    }
+
+    /// Crea una matriz identidad de MxM elementos.
+    pub fn identity(size: usize) -> Matrix {
+        let mut matrix = Matrix::new(size, size);
+        for i in 0..size {
+            matrix.data[i * size + i] = 1.0;
+        }
+        matrix
+    }
+
+    /// Crea una matriz elemental de tipo I.
+    /// Permuta las filas `i` y `j`.
+    pub fn elemental_i(size: usize, i: usize, j: usize) -> Result<Matrix, &'static str> {
+        let mut matrix = Matrix::identity(size);
+        matrix.set(i, i, 0.0)?;
+        matrix.set(i, j, 1.0)?;
+        matrix.set(j, j, 0.0)?;
+        matrix.set(j, i, 1.0)?;
+        Ok(matrix)
+    }
+
+    /// Crea una matriz elemental de tipo II.
+    /// Multiplica la fila `i` por el escalar `scalar`.
+    pub fn elemental_ii(size: usize, i: usize, scalar: f64) -> Result<Matrix, &'static str> {
+        let mut matrix = Matrix::identity(size);
+        matrix.set(i, i, scalar)?;
+        Ok(matrix)
+    }
+
+    /// Crea una matriz elemental de tipo III.
+    /// Le suma a la fila `i` el producto de la fila `j` por el escalar `scalar`.
+    pub fn elemental_iii(
+        size: usize,
+        i: usize,
+        j: usize,
+        scalar: f64,
+    ) -> Result<Matrix, &'static str> {
+        let mut matrix = Matrix::identity(size);
+        matrix.set(i, j, scalar)?;
         Ok(matrix)
     }
 
@@ -176,12 +208,12 @@ impl Matrix {
     }
 
     /// Calcula la potencia de una matriz cuadrada. Retorna una nueva matriz.
-    pub fn pow(&self, exp: f64) -> Result<Matrix, &'static str> {
+    pub fn pow(&self, exp: f64) -> Result<Matrix, String> {
         if !self.is_square() {
-            return Err("La potencia solo está definida para matrices cuadradas");
+            return Err("La potencia solo está definida para matrices cuadradas".to_string());
         }
         if !nearly_equal(exp.fract(), 0.0) {
-            return Err("La potencia solo está definida para exponentes enteros");
+            return Err("La potencia solo está definida para exponentes enteros".to_string());
         }
 
         // Si el exponente es negativo, calcula la inversa de la matriz.
@@ -240,9 +272,8 @@ impl Matrix {
         // La estrategia es buscar la primera fila tal que Aik != 0 e intercambiarla con la fila k.
         // Si no existe tal fila, el determinante es 0.
         //
-        // Una vez intercambiada, se divide cada elemento de la fila k por Akk.
-        // Luego, se resta a cada fila i > k la fila k multiplicada por Aik/Akk. Así, los elementos
-        // de la columna k quedan en 0 para esas filas.
+        // Una vez intercambiada, se resta a cada fila i > k la fila k multiplicada por Aik/Akk.
+        // Así, los elementos de la columna k quedan en 0 para esas filas.
         //
         // Todo esto para que quede una matriz triangular superior. Así, el determinante es el
         // producto de los elementos de la diagonal.
@@ -302,105 +333,102 @@ impl Matrix {
             determinant *= matrix.get(k, k).unwrap();
         }
 
+        // Finalmente, retorno el determinante
         Ok(determinant)
     }
 
-    /// Retorna la inversa calculada con Gauss Jhordan
-    pub fn inverse(&self) -> Result<Matrix, &'static str> {
-        if !self.is_square() || self.determinant() == Ok(0.0) {
-            return Err(
-                "La inversa de una matriz solo se puede calcular si su determinte es distinto de cero."
-            );
+    /// Retorna la inversa de la matriz.
+    /// Se calcula obteniendo la forma escalonada reducida de Gauss-Jordan.
+    pub fn inverse(&self) -> Result<Matrix, String> {
+        // La matriz debe ser cuadrada (porque solo sabemos invertir matrices cuadradas)
+        if !self.is_square() {
+            return Err("La inversa de matrices rectangulares no está implementada".to_string());
         }
 
-        // Configuro variables
-        let rows = self.rows;
-        let cols = self.cols;
-
-        let mut original = Matrix::new(rows, cols);
-        for (i, j, val) in self {
-            original.set(i, j, val).unwrap();
+        // El determinante debe ser distinto de 0.
+        // Calculamos primero el determinante porque, para matrices grandes, es mucho más
+        // eficiente para determinar si la matriz tiene inversa.
+        let determinant = self.determinant().unwrap_or(0.0);
+        if nearly_equal(determinant, 0.0) {
+            return Err("La matriz no tiene inversa porque su determinante es 0".to_string());
         }
 
-        let mut inverse = Matrix::new(rows, cols);
-        for i in 0..rows {
-            for j in 0..cols {
-                if i == j {
-                    inverse.set(i, j, 1.0).unwrap();
-                } else {
-                    inverse.set(i, j, 0.0).unwrap();
-                }
-            }
-        }
+        // número de filas y columnas
+        let n = self.rows;
+        // clono la matriz para no modificar la original
+        let mut matrix = self.clone();
+        // creo la matriz identidad de nxn
+        let mut accum = Matrix::identity(n);
 
-        // Llevo el trianulo inferior a 0
-        for k in 0..rows {
-            // Busco el pivote
-            let mut i_max = k;
-            for i in k + 1..rows {
-                // si el primer indice de la fila es mayor al de la fila k se rota para que
-                //   en la fila k que de la fila con mayor indice
-                if original.get(i, k).unwrap().abs() > original.get(i_max, k).unwrap().abs() {
-                    for j in 0..cols {
-                        let tmp = original.get(i_max, j).unwrap();
-                        original.set(i_max, j, original.get(i, j).unwrap()).unwrap();
-                        original.set(i, j, tmp).unwrap();
-                        let tmp = inverse.get(i_max, j).unwrap();
-                        inverse.set(i_max, j, inverse.get(i, j).unwrap()).unwrap();
-                        inverse.set(i, j, tmp).unwrap();
+        // Recorro la diagonal.
+        // Como la matriz es cuadrada, me basta con un único índice que va desde 0 a n-1.
+        //
+        // La estrategia es buscar la primera fila tal que Aik != 0 e intercambiarla con la fila k.
+        // Si no existe tal fila, la matriz no tiene inversa.
+        //
+        // Una vez intercambiada, se divide cada elemento de la fila k por Akk. Así, Akk = 1.
+        // Luego, se resta a cada fila i != k la fila k multiplicada por Aik. Así, los elementos
+        // de la columna k quedan en 0 para esas filas.
+        //
+        // Todo esto para que quede una matriz identidad. A la par, se aplican las mismas
+        // operaciones a la matriz acumuladora, que es la matriz identidad que se va
+        // multiplicando por la inversa de la matriz original. Finalmente, la matriz
+        // acumuladora será la inversa de la matriz original.
+        for k in 0..n {
+            // Obtengo el elemento de la diagonal (Akk, que será el pivote)
+            let mut pivot = matrix.get(k, k).unwrap();
+            if nearly_equal(pivot, 0.0) {
+                // Busco la primera fila tal que Aik != 0
+                let mut found = false;
+                // Solo busco en las filas k+1 a n-1, ya que las filas anteriores ya están en 0
+                let mut i = k + 1;
+                while !found && i < n {
+                    pivot = matrix.get(i, k).unwrap();
+                    if nearly_equal(pivot, 0.0) {
+                        i += 1;
+                    } else {
+                        found = true;
                     }
-                    i_max = i;
+                }
+                if !found {
+                    // Nota: este mensaje no se debería mostrar nunca, ya que el determinante
+                    // debería ser 0. Como nadie quiere un bucle infinito, lo dejo por las dudas.
+                    return Err(
+                        "La matriz tiene una columna de ceros, por ende, no tiene inversa"
+                            .to_string(),
+                    );
+                } else {
+                    // Creo la matriz elemental que permuta la fila k con la fila i
+                    let permutation = Matrix::elemental_i(n, k, i)?;
+                    // Multiplico la matriz y la acumuladora por la matriz elemental
+                    matrix = Matrix::multiply(&permutation, &matrix)?;
+                    accum = Matrix::multiply(&permutation, &accum)?;
                 }
             }
 
-            // Llevo el triangulo inferior a 0
-            for i in k + 1..rows {
-                // obtengo la relacion entre la fila k y la fila i
-                let factor = original.get(i, k).unwrap() / original.get(k, k).unwrap();
-                // fi - factor * fk
-                for j in k..cols {
-                    let new_value_original =
-                        original.get(i, j).unwrap() - factor * original.get(k, j).unwrap();
-                    let new_value_inverse =
-                        inverse.get(i, j).unwrap() - factor * inverse.get(k, j).unwrap();
-                    original.set(i, j, new_value_original).unwrap();
-                    inverse.set(i, j, new_value_inverse).unwrap();
+            // Ahora, toca dividir cada elemento de la fila k por Akk.
+            // Creo la matriz elemental que divide la fila k por Akk
+            let scale = Matrix::elemental_ii(n, k, 1.0 / pivot)?;
+            // Multiplico la matriz y la acumuladora por la matriz elemental
+            matrix = Matrix::multiply(&scale, &matrix)?;
+            accum = Matrix::multiply(&scale, &accum)?;
+
+            // Ahora, toca restar a cada fila i != k la fila k multiplicada por Aik.
+            for i in 0..n {
+                if i != k {
+                    // factor = -Aik
+                    let factor = -matrix.get(i, k).unwrap();
+
+                    // Creo la matriz elemental que resta a la fila i la fila k multiplicada por Aik
+                    let elimination = Matrix::elemental_iii(n, i, k, factor)?;
+                    // Multiplico la matriz y la acumuladora por la matriz elemental
+                    matrix = Matrix::multiply(&elimination, &matrix)?;
+                    accum = Matrix::multiply(&elimination, &accum)?;
                 }
             }
         }
 
-        // llevo la diagonal a 1
-        for k in 0..rows {
-            // obtengo el inverso
-            let factor = 1.0 / original.get(k, k).unwrap();
-            // multiplico cada undice de la fila por el factor para que quede en 1
-            for i in 0..cols {
-                original
-                    .set(k, i, factor * original.get(k, i).unwrap())
-                    .unwrap();
-                inverse
-                    .set(k, i, factor * inverse.get(k, i).unwrap())
-                    .unwrap();
-            }
-        }
-        // Llevo el trianulo superior a 0
-        // recorro cada fila de abajo hacia arriba
-        for k in (0..rows).rev() {
-            // recorro las filas de arriba a k
-            for i in (0..k).rev() {
-                // obtengo el factor entre la fila k y la fila i
-                let factor = original.get(i, k).unwrap();
-                // resto a la fila i factor veces la fila k
-                for j in 0..cols {
-                    let new_value_original =
-                        original.get(i, j).unwrap() - factor * original.get(k, j).unwrap();
-                    let new_value_inverse =
-                        inverse.get(i, j).unwrap() - factor * inverse.get(k, j).unwrap();
-                    original.set(i, j, new_value_original).unwrap();
-                    inverse.set(i, j, new_value_inverse).unwrap();
-                }
-            }
-        }
-        Ok(inverse)
+        // Finalmente, retorno la matriz acumuladora
+        Ok(accum)
     }
 }
