@@ -37,34 +37,35 @@ ans =   2
 
 | Nombre | Descripción                         | Implementada |
 | :----- | :---------------------------------- | :----------: |
-| `+`    | Suma                                |      ❌      |
-| `-`    | Resta                               |      ❌      |
-| `*`    | Multiplicación                      |      ❌      |
-| `/`    | División                            |      ❌      |
-| `\`    | División a la derecha (`a/b = b\a`) |      ❌      |
-| `^`    | Potenciación                        |      ❌      |
-| `!`    | Factorial                           |      ❌      |
-| `'`    | Traspuesta (`A' = traspose(A)`)     |      ❌      |
+| `+`    | Suma                                |      ✔️      |
+| `-`    | Resta                               |      ✔️      |
+| `*`    | Multiplicación                      |      ✔️      |
+| `/`    | División                            |      ✔️      |
+| `\`    | División a la derecha (`a/b = b\a`) |      ✔️      |
+| `^`    | Potenciación                        |      ✔️      |
+| `!`    | Factorial                           |      ✔️      |
+| `'`    | Traspuesta (`A' = transpose(A)`)    |      ✔️      |
 
 ### Funciones
 
-| Nombre         | Descripción                    | Implementada |
-| :------------- | :----------------------------- | :----------: |
-| `exit`         | Termina el programa            |      ❌      |
-| `clc`          | Limpia la consola              |      ❌      |
-| `sqrt(n)`      | Raíz cuadrada de "n"           |      ❌      |
-| `pow(a, n)`    | "a" a la n-ésima potencia      |      ❌      |
-| `factorial(n)` | "n" factorial                  |      ❌      |
-| `sin(x)`       | Seno de "x"                    |      ❌      |
-| `cos(x)`       | Coseno de "x"                  |      ❌      |
-| `tan(x)`       | Tangente de "x"                |      ❌      |
-| `transpose(A)` | Transpuesta de la matriz "A"   |      ❌      |
-| `inv(x)`       | Inverso de "x" (real o matriz) |      ❌      |
+| Nombre           | Descripción                    | Implementada |
+| :--------------- | :----------------------------- | :----------: |
+| `exit`           | Termina el programa            |      ✔️      |
+| `clc`            | Limpia la consola              |      ✔️      |
+| `sqrt(n)`        | Raíz cuadrada de "n"           |      ❌      |
+| `pow(a, n)`      | "a" a la n-ésima potencia      |      ❌      |
+| `factorial(n)`   | "n" factorial                  |      ❌      |
+| `sin(x)`         | Seno de "x"                    |      ❌      |
+| `cos(x)`         | Coseno de "x"                  |      ❌      |
+| `tan(x)`         | Tangente de "x"                |      ❌      |
+| `transpose(A)`   | Transpuesta de la matriz "A"   |      ❌      |
+| `inv(x)`         | Inverso de "x" (real o matriz) |      ❌      |
+| `linsolve(A, b)` | Resuelve un sistema lineal     |      ❌      |
 
 ### Variables
 
 | Nombre | Valor                            | Implementada |
 | :----: | :------------------------------- | :----------: |
-|  ans   | Resultado de la última operación |      ❌      |
-|   pi   | 3.1415 ...                       |      ❌      |
-|   e    | 2.7182 ...                       |      ❌      |
+|  ans   | Resultado de la última operación |      ✔️      |
+|   pi   | 3.1415 ...                       |      ✔️      |
+|   e    | 2.7182 ...                       |      ✔️      |
