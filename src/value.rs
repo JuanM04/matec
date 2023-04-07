@@ -1,6 +1,7 @@
 use super::matrix::Matrix;
 use std::fmt;
 
+#[derive(Clone)]
 pub enum Value {
     Scalar(f64),
     Matrix(Matrix),

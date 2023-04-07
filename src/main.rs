@@ -6,10 +6,23 @@ mod value;
 use functions::scalars;
 use matrix::Matrix;
 use parser::{parse, AstNode};
-use std::io::{stdin, stdout, Write};
+use std::{
+    collections::HashMap,
+    io::{stdin, stdout, Write},
+};
 use value::Value;
 
+type Variables = HashMap<String, Value>;
+
 fn main() {
+    // En este hashmap se guardan las variables que se van creando.
+    let mut variables: Variables = HashMap::new();
+
+    // Agregamos las variables pi y e.
+    variables.insert("pi".to_string(), Value::Scalar(std::f64::consts::PI));
+    variables.insert("e".to_string(), Value::Scalar(std::f64::consts::E));
+
+    // Impresión del mensaje de bienvenida.
     println!("#===========================#");
     println!("# Clon sin nombre de Matlab #");
     println!("#===========================#");
@@ -17,42 +30,70 @@ fn main() {
     println!("Por Majoros, Lorenzo; y Seery, Juan Martín");
     println!("Para Matemática C - 2023");
     println!("");
-    println!("");
-    println!("Para ayuda, escriba \"help\"");
     println!("Para salir, escriba \"exit\"");
     println!("");
     println!("");
 
     loop {
+        // Se lee la entrada del usuario.
         print!("> ");
         let mut input = String::new();
         stdout().flush().unwrap();
         stdin().read_line(&mut input).unwrap();
         let input = input.trim();
 
+        // Casos especiales de comandos.
         if input == "exit" {
             break;
+        } else if input == "clc" {
+            println!("\x1B[2J\x1B[1;1H");
+            continue;
         }
 
-        let result = parse(&input);
-        if let Ok(ast) = result {
-            for n in &ast {
-                match evaluate_expression(&n.expr) {
-                    Ok(ans) => println!("ans = {}", ans),
-                    Err(e) => println!("Error: {}", e),
+        // Se parsea la entrada en texto a un AST (ver parser/mod.rs)
+        match parse(&input) {
+            // Si no hay errores de sintáxis, se evalúa cada expresión.
+            Ok(ast) => {
+                let len = ast.len();
+                for i in 0..len {
+                    // Si la expresión tiene asignación (x = ...), se toma el nombre de la variable.
+                    // De lo contrario, se asigna a la variable "ans".
+                    let assign_to = &ast[i].assign_to.clone().unwrap_or("ans".to_string());
+                    let expr = &ast[i].expr;
+                    // Se evalúa la expresión.
+                    match evaluate_expression(expr, &variables) {
+                        Ok(ans) => {
+                            if i + 1 == len {
+                                // Si es la última expresión, se imprime el resultado.
+                                println!("{} = {}", assign_to, ans);
+                            }
+                            // Se guarda el resultado en el hashmap de variables.
+                            variables.insert(assign_to.to_string(), ans);
+                        }
+                        Err(e) => {
+                            println!("Error: {}", e);
+                            break;
+                        }
+                    }
                 }
             }
-        } else {
-            println!("Error de sintáxis: {:#?}", result);
-        }
+            // Si hay un error de sintáxis, se imprime el error.
+            Err(e) => println!("Error de sintáxis: {:#?}", e),
+        };
     }
 }
 
 type ExprResult = Result<Value, String>;
 
-fn evaluate_expression(expr: &AstNode) -> ExprResult {
+fn evaluate_expression(expr: &AstNode, variables: &Variables) -> ExprResult {
     match expr {
-        AstNode::Ident(s) => unimplemented!(),
+        AstNode::Ident(s) => {
+            if let Some(v) = variables.get(s) {
+                Ok(v.clone())
+            } else {
+                Err(format!("La variable \"{}\" no está definida", s))
+            }
+        }
         AstNode::Scalar(n) => Ok(Value::Scalar(*n)),
         AstNode::Matrix(vec) => {
             let rows = vec.len();
@@ -70,7 +111,7 @@ fn evaluate_expression(expr: &AstNode) -> ExprResult {
                         );
                     }
 
-                    match evaluate_expression(col) {
+                    match evaluate_expression(col, variables) {
                         Ok(Value::Scalar(n)) => matrix.set(i, j, n).unwrap(),
                         Ok(Value::Matrix(_)) => {
                             return Err(
@@ -85,7 +126,7 @@ fn evaluate_expression(expr: &AstNode) -> ExprResult {
         }
         AstNode::Call { func, args } => unimplemented!(),
         AstNode::UnaryOp { op, expr } => {
-            let value = evaluate_expression(expr)?;
+            let value = evaluate_expression(expr, variables)?;
             match op {
                 parser::UnaryOp::Positive => Ok(value),
                 parser::UnaryOp::Negate => match value {
@@ -110,8 +151,8 @@ fn evaluate_expression(expr: &AstNode) -> ExprResult {
             }
         }
         AstNode::BinaryOp { left, op, right } => {
-            let left = evaluate_expression(left)?;
-            let right = evaluate_expression(right)?;
+            let left = evaluate_expression(left, variables)?;
+            let right = evaluate_expression(right, variables)?;
             match op {
                 parser::BinaryOp::Add => match (left, right) {
                     (Value::Scalar(a), Value::Scalar(b)) => Ok(Value::Scalar(a + b)),
