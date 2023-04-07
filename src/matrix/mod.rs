@@ -34,6 +34,15 @@ impl Matrix {
         }
     }
 
+    /// Crea una matriz identidad de MxM elementos.
+    pub fn identity(size: usize) -> Matrix {
+        let mut matrix = Matrix::new(size, size);
+        for i in 0..size {
+            matrix.data[i * size + i] = 1.0;
+        }
+        matrix
+    }
+
     /// Crea una matriz a partir de un vector de vectores. Útil cuando se
     /// quiere crear una matriz a partir de datos de entrada.
     pub fn from_2d(nested_vec: Vec<Vec<MatrixItem>>) -> Result<Matrix, &'static str> {
@@ -147,6 +156,29 @@ impl Matrix {
             }
         }
 
+        Ok(result)
+    }
+
+    pub fn pow(&self, exp: f64) -> Result<Matrix, &'static str> {
+        if !self.is_square() {
+            return Err("La potencia solo está definida para matrices cuadradas");
+        }
+        if exp.fract() != 0.0 {
+            return Err("La potencia solo está definida para exponentes enteros");
+        }
+
+        let base = if exp < 0.0 {
+            self.inverse()?
+        } else {
+            self.clone()
+        };
+
+        let exp = exp.abs() as usize;
+
+        let mut result = Matrix::identity(self.rows);
+        for _ in 0..exp {
+            result = result.mul(&base)?;
+        }
         Ok(result)
     }
 

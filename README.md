@@ -52,14 +52,17 @@ ans =   2
 | :--------------- | :----------------------------- | :----------: |
 | `exit`           | Termina el programa            |      ✔️      |
 | `clc`            | Limpia la consola              |      ✔️      |
-| `sqrt(n)`        | Raíz cuadrada de "n"           |      ❌      |
-| `pow(a, n)`      | "a" a la n-ésima potencia      |      ❌      |
-| `factorial(n)`   | "n" factorial                  |      ❌      |
-| `sin(x)`         | Seno de "x"                    |      ❌      |
-| `cos(x)`         | Coseno de "x"                  |      ❌      |
-| `tan(x)`         | Tangente de "x"                |      ❌      |
-| `transpose(A)`   | Transpuesta de la matriz "A"   |      ❌      |
-| `inv(x)`         | Inverso de "x" (real o matriz) |      ❌      |
+| `abs(n)`         | Valor absoluto de "n"          |      ✔️      |
+| `sqrt(n)`        | Raíz cuadrada de "n"           |      ✔️      |
+| `pow(a, n)`      | "a" a la n-ésima potencia      |      ✔️      |
+| `inv(x)`         | Inverso de "x" (real o matriz) |      ✔️      |
+| `factorial(n)`   | "n" factorial                  |      ✔️      |
+| `sin(x)`         | Seno de "x"                    |      ✔️      |
+| `cos(x)`         | Coseno de "x"                  |      ✔️      |
+| `tan(x)`         | Tangente de "x"                |      ✔️      |
+| `log(x)`         | Logarítmo natural de "x"       |      ✔️      |
+| `transpose(A)`   | Transpuesta de la matriz "A"   |      ✔️      |
+| `det(A)`         | Determinante de la matriz "A"  |      ✔️      |
 | `linsolve(A, b)` | Resuelve un sistema lineal     |      ❌      |
 
 ### Variables

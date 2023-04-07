@@ -3,7 +3,6 @@ mod matrix;
 mod parser;
 mod value;
 
-use functions::scalars;
 use matrix::Matrix;
 use parser::{parse, AstNode};
 use std::{
@@ -83,10 +82,12 @@ fn main() {
     }
 }
 
-type ExprResult = Result<Value, String>;
-
-fn evaluate_expression(expr: &AstNode, variables: &Variables) -> ExprResult {
+/// Evalúa una expresión y devuelve el resultado.
+/// Esta es una función recursiva que evalúa cada nodo del AST.
+/// Puede devolver un error si la expresión no es válida.
+fn evaluate_expression(expr: &AstNode, variables: &Variables) -> Result<Value, String> {
     match expr {
+        // Si el nodo es una variable, se busca en el hashmap de variables.
         AstNode::Ident(s) => {
             if let Some(v) = variables.get(s) {
                 Ok(v.clone())
@@ -94,23 +95,46 @@ fn evaluate_expression(expr: &AstNode, variables: &Variables) -> ExprResult {
                 Err(format!("La variable \"{}\" no está definida", s))
             }
         }
+        // Si el nodo es un número, se devuelve el valor.
         AstNode::Scalar(n) => Ok(Value::Scalar(*n)),
+        // Si el nodo es una matriz, se pasa a Matrix.
         AstNode::Matrix(vec) => {
+            // Se recibe un vector de vectores de nodos. Vec<Vec<AstNode>>
+            // El primer vector representa las filas de la matriz.
+            // El segundo vector representa las columnas de la matriz.
+            // Por ejemplo, la matriz [[1, 2], [3, 4]] se representa como:
+            // vec![vec![AstNode::Scalar(1), AstNode::Scalar(2)], vec![AstNode::Scalar(3), AstNode::Scalar(4)]]
+
+            // Hay que verificar que la matriz esté bien declarada.
+            // Primero, se verifica el caso de una matriz vacía.
             let rows = vec.len();
             if rows == 0 {
                 return Ok(Value::Matrix(Matrix::new(0, 0)));
             }
+
+            // Luego, se toma el número de columnas de la primera fila.
+            // Si alguna fila tiene un número distinto de columnas, se devuelve un error.
             let cols = vec[0].len();
             let mut matrix = Matrix::new(rows, cols);
-            for (i, row) in vec.iter().enumerate() {
-                for (j, col) in row.iter().enumerate() {
-                    if j + 1 > cols {
-                        return Err(
-                            "La matriz está mal declarada: el número de columnas no es consistente"
-                                .to_string(),
-                        );
-                    }
 
+            // Se iteran las filas de la matriz.
+            for (i, row) in vec.iter().enumerate() {
+                // Si una fila tiene una cantidad distinta de columnas a la primera fila,
+                // se devuelve un error.
+                if row.len() != cols {
+                    return Err(
+                        "La matriz está mal declarada: el número de columnas no es consistente"
+                            .to_string(),
+                    );
+                }
+
+                // Se itera cada columna de la fila.
+                for (j, col) in row.iter().enumerate() {
+                    // Dada la recursividad de la función, se evalúa cada elemento de la matriz.
+                    // Por ejemplo, se puede tener una matriz [1, 2; 5*4, 3]
+                    // donde 5*4 es una expresión que se evalúa recursivamente.
+
+                    // Se evalúa la expresión y se guarda en la matriz.
                     match evaluate_expression(col, variables) {
                         Ok(Value::Scalar(n)) => matrix.set(i, j, n).unwrap(),
                         Ok(Value::Matrix(_)) => {
@@ -122,95 +146,122 @@ fn evaluate_expression(expr: &AstNode, variables: &Variables) -> ExprResult {
                     };
                 }
             }
+            // Se devuelve la matriz.
             Ok(Value::Matrix(matrix))
         }
-        AstNode::Call { func, args } => unimplemented!(),
+        // Se encontró un operador unario. (Como -5, o 5!)
+        // Todas funciones unarias se encuentran en functions/mod.rs
         AstNode::UnaryOp { op, expr } => {
             let value = evaluate_expression(expr, variables)?;
             match op {
                 parser::UnaryOp::Positive => Ok(value),
-                parser::UnaryOp::Negate => match value {
-                    Value::Scalar(n) => Ok(Value::Scalar(-n)),
-                    Value::Matrix(a) => Ok(Value::Matrix(a.scale(-1.0))),
-                },
-                parser::UnaryOp::Factorial => match value {
-                    Value::Scalar(n) => {
-                        let factorial = scalars::factorial(n)?;
-                        Ok(Value::Scalar(factorial))
-                    }
-                    Value::Matrix(_) => {
-                        Err("No se puede calcular el factorial de una matriz".to_string())
-                    }
-                },
-                parser::UnaryOp::Transpose => match value {
-                    Value::Scalar(_) => {
-                        Err("No se puede calcular la traspuesta de un número".to_string())
-                    }
-                    Value::Matrix(a) => Ok(Value::Matrix(a.transpose())),
-                },
+                parser::UnaryOp::Negate => functions::negate(&value),
+                parser::UnaryOp::Factorial => functions::factorial(&value),
+                parser::UnaryOp::Transpose => functions::transpose(&value),
             }
         }
+        // Se encontró un operador binbario. (Como 4-5, o 3^2)
+        // Todas las funciones binarias se encuentran en functions/mod.rs
         AstNode::BinaryOp { left, op, right } => {
             let left = evaluate_expression(left, variables)?;
             let right = evaluate_expression(right, variables)?;
             match op {
-                parser::BinaryOp::Add => match (left, right) {
-                    (Value::Scalar(a), Value::Scalar(b)) => Ok(Value::Scalar(a + b)),
-                    (Value::Matrix(a), Value::Matrix(b)) => Ok(Value::Matrix(a.add(&b)?)),
-                    _ => Err("No se puede sumar matrices con números".to_string()),
-                },
-                parser::BinaryOp::Subtract => match (left, right) {
-                    (Value::Scalar(a), Value::Scalar(b)) => Ok(Value::Scalar(a - b)),
-                    (Value::Matrix(a), Value::Matrix(b)) => {
-                        Ok(Value::Matrix(a.add(&b.scale(-1.0))?))
-                    }
-                    _ => Err("No se puede restar matrices con números".to_string()),
-                },
-                parser::BinaryOp::Multiply => return multiply(&left, &right),
-                parser::BinaryOp::Divide => match right {
-                    Value::Scalar(right) => {
-                        if right == 0.0 {
-                            return Err("No se puede dividir por cero".to_string());
-                        }
-                        multiply(&left, &Value::Scalar(1.0 / right))
-                    }
-                    Value::Matrix(a) => {
-                        let right = a.inverse()?;
-                        multiply(&left, &Value::Matrix(right))
-                    }
-                },
-                parser::BinaryOp::RightDivide => match left {
-                    Value::Scalar(left) => {
-                        if left == 0.0 {
-                            return Err("No se puede dividir por cero".to_string());
-                        }
-                        multiply(&Value::Scalar(1.0 / left), &right)
-                    }
-                    Value::Matrix(A) => {
-                        let left = A.inverse()?;
-                        multiply(&Value::Matrix(left), &right)
-                    }
-                },
-                parser::BinaryOp::Power => {
-                    if let Value::Scalar(right) = right {
-                        match left {
-                            Value::Scalar(left) => Ok(Value::Scalar(scalars::pow(left, right))),
-                            Value::Matrix(a) => unimplemented!(),
-                        }
-                    } else {
-                        Err("La potencia no puede ser una matriz".to_string())
-                    }
-                }
+                parser::BinaryOp::Add => functions::add(&left, &right),
+                parser::BinaryOp::Subtract => functions::subtract(&left, &right),
+                parser::BinaryOp::Multiply => functions::multiply(&left, &right),
+                parser::BinaryOp::Divide => functions::divide(&left, &right),
+                parser::BinaryOp::RightDivide => functions::right_divide(&left, &right),
+                parser::BinaryOp::Power => functions::pow(&left, &right),
             }
         }
-    }
-}
 
-fn multiply(left: &Value, right: &Value) -> ExprResult {
-    match (left, right) {
-        (Value::Scalar(a), Value::Scalar(b)) => Ok(Value::Scalar(a * b)),
-        (Value::Matrix(a), Value::Matrix(b)) => Ok(Value::Matrix(a.mul(&b)?)),
-        (Value::Scalar(a), Value::Matrix(b)) => Ok(Value::Matrix(b.scale(*a))),
-        (Value::Matrix(a), Value::Scalar(b)) => Ok(Value::Matrix(a.scale(*b))),
+        // Se econtró una función. (Como sin(5), o det(A))
+        // Todas las funciones se encuentran en functions/mod.rs
+        AstNode::Call { func, args } => {
+            // Primero, se evalúa cada argumento de la función.
+            let mut evaluated_args: Vec<Value> = Vec::new();
+            for arg in args {
+                evaluated_args.push(evaluate_expression(arg, variables)?);
+            }
+
+            let name = func.as_str();
+
+            // Se llama a la función correspondiente.
+            match name {
+                "abs" => {
+                    if evaluated_args.len() != 1 {
+                        return Err("La función abs() recibe un argumento".to_string());
+                    }
+                    functions::abs(&evaluated_args[0])
+                }
+                "sqrt" => {
+                    if evaluated_args.len() != 1 {
+                        return Err("La función sqrt() recibe un argumento".to_string());
+                    }
+                    functions::sqrt(&evaluated_args[0])
+                }
+                "pow" => {
+                    if evaluated_args.len() != 2 {
+                        return Err("La función pow() recibe dos argumentos".to_string());
+                    }
+                    functions::pow(&evaluated_args[0], &evaluated_args[1])
+                }
+                "inv" => {
+                    if evaluated_args.len() != 1 {
+                        return Err("La función inv() recibe un argumento".to_string());
+                    }
+                    functions::inverse(&evaluated_args[0])
+                }
+                "factorial" => {
+                    if evaluated_args.len() != 1 {
+                        return Err("La función factorial() recibe un argumento".to_string());
+                    }
+                    functions::factorial(&evaluated_args[0])
+                }
+                "sin" => {
+                    if evaluated_args.len() != 1 {
+                        return Err("La función sin() recibe un argumento".to_string());
+                    }
+                    functions::sin(&evaluated_args[0])
+                }
+                "cos" => {
+                    if evaluated_args.len() != 1 {
+                        return Err("La función cos() recibe un argumento".to_string());
+                    }
+                    functions::cos(&evaluated_args[0])
+                }
+                "tan" => {
+                    if evaluated_args.len() != 1 {
+                        return Err("La función tan() recibe un argumento".to_string());
+                    }
+                    functions::tan(&evaluated_args[0])
+                }
+                "log" => {
+                    if evaluated_args.len() != 1 {
+                        return Err("La función log() recibe un argumento".to_string());
+                    }
+                    functions::log(&evaluated_args[0])
+                }
+                "transpose" => {
+                    if evaluated_args.len() != 1 {
+                        return Err("La función transpose() recibe un argumento".to_string());
+                    }
+                    functions::transpose(&evaluated_args[0])
+                }
+                "det" => {
+                    if evaluated_args.len() != 1 {
+                        return Err("La función det() recibe un argumento".to_string());
+                    }
+                    functions::det(&evaluated_args[0])
+                }
+                "linsolve" => {
+                    if evaluated_args.len() != 1 {
+                        return Err("La función linsolve() recibe dos argumentos".to_string());
+                    }
+                    functions::linsolve(&evaluated_args[0], &evaluated_args[1])
+                }
+                _ => Err(format!("La función {} no está definida", name)),
+            }
+        }
     }
 }
