@@ -268,7 +268,7 @@ impl Matrix {
                     .set(k, i, factor * inverse.get(k, i).unwrap())
                     .unwrap();
             }
-        }
+        } 
 
 
         /*// Llevo el trianulo superor (inferior de la traspuesnta) a 0
@@ -309,32 +309,57 @@ impl Matrix {
         println!("Inversa: {}",inverse);
 
 
+        // let mut original_traspuesta = Matrix::new(rows, cols);
+        // for (row, col, val) in &original.transpose() {
+        //     original_traspuesta.set(row, col, val).unwrap();
+        // }
+        // let mut inverse_traspuesta = Matrix::new(rows, cols);
+        // for (row, col, val) in &inverse.transpose() {
+        //     inverse_traspuesta.set(row, col, val).unwrap();
+        // }
+
+        // Llevo el trianulo superior a 0
         for k in (0..rows).rev() {
-            println!("\nEvaluo de la fila k {} hacia atras", k);
+            println!("\nFila k {}", k);
             for i in (0..k).rev() {
-                println!("Evaluo fila i {}",i);
-
-                println!("Original: {}",original);
-                println!("Inversa: {}",inverse);
-
-
-                let factor = original.get(i, k).unwrap();
-                println!("Busco el factor {}",factor);
-                println!("f{} - {}*f{}",i,factor,k);
+                println!("Fila i {}", i);
+                let factor = original.get(i, k).unwrap() / original.get(k, k).unwrap();
+                println!("Factor : {} = {} / {}", factor, original.get(i, k).unwrap(), original.get(k, k).unwrap());
+                println!("f{} - {}f{}", i, factor, k);
+                println!("");
+                println!("{} {}", original, inverse);
                 for j in 0..cols {
-                    let n_v_original = original.get(i,j).unwrap() - factor * original.get(k,j).unwrap();
-                    let n_v_inverse = inverse.get(i,j).unwrap() - factor * inverse.get(k,j).unwrap();
-                    original.set(i, j, n_v_original).unwrap();
-                    inverse.set(i, j, n_v_inverse).unwrap();
+                    let new_value_original =
+                        original.get(i, j).unwrap() - factor * original.get(k, j).unwrap();
+                    let new_value_inverse =
+                        inverse.get(i, j).unwrap() - factor * inverse.get(k, j).unwrap();
+                    original.set(i, j, new_value_original).unwrap();
+                    inverse.set(i, j, new_value_inverse).unwrap();
                 }
             }
         }
 
+        // for (row, col, val) in &inverse_traspuesta.transpose() {
+        //     inverse.set(row, col, val).unwrap();
+        // }
 
+        // llevo la diagonal a 1
+        // for k in 0..rows {
+        //     let factor = 1.0 / original.get(k, k).unwrap();
+        //     for i in 0..cols {
+        //         original
+        //             .set(k, i, factor * original.get(k, i).unwrap())
+        //             .unwrap();
+        //         inverse
+        //             .set(k, i, factor * inverse.get(k, i).unwrap())
+        //             .unwrap();
+        //     }
+        // }
 
         println!("Original: {}",original);
-        // println!("Traspuesta: {}",t);
+        // println!("Traspuesta: {}",original_traspuesta);
         println!("Inversa: {}",inverse);
+        // println!("Inverse T: {}",inverse_traspuesta);
 
         Ok(inverse)
     } 
