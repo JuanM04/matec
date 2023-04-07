@@ -220,65 +220,89 @@ impl Matrix {
         }
         result
     }
-    /// Retorna el determinante de la matriz.
-    pub fn determinant(&self) -> Result<f64, &'static str> {
+    /// Calcula y retorna el determinante de la matriz.
+    /// Se calcula mediante eliminación gaussiana en vez de por
+    /// expansión de cofactores debido a su eficiencia.
+    pub fn determinant(&self) -> Result<MatrixItem, &'static str> {
         // La matriz debe ser cuadrada
         if !self.is_square() {
-            return Err("El determinante solo se puede calcular para matrices cuadradas.");
+            return Err("El determinante solo está definida para matrices cuadradas.");
         }
 
-        let rows = self.rows;
-        let cols = self.cols;
+        // Clono la matriz para no modificar la original
+        let mut matrix = self.clone();
+        let n = matrix.rows; // número de filas y columnas
+        let mut determinant: f64 = 1.0;
 
-        // Copio la matriz original
-        let mut matrix = Matrix::new(rows, cols);
-        for (i, j, val) in self {
-            matrix.set(i, j, val).unwrap();
-        }
-
-        // El resultado de la determinante es un float
-        let mut determinante = 1.0;
-
-        // Evaluo cada fila
-        for k in 0..rows {
-            // busco el pivote
-            let mut i_max = k;
-            for i in k + 1..rows {
-                if matrix.get(i, k).unwrap().abs() > matrix.get(i_max, k).unwrap().abs() {
-                    for j in 0..cols {
-                        let tmp = matrix.get(i_max, j).unwrap();
-                        matrix.set(i_max, j, matrix.get(i, j).unwrap()).unwrap();
-                        matrix.set(i, j, tmp).unwrap();
+        // Recorro la diagonal.
+        // Como la matriz es cuadrada, me basta con un único índice que va desde 0 a n-1.
+        //
+        // La estrategia es buscar la primera fila tal que Aik != 0 e intercambiarla con la fila k.
+        // Si no existe tal fila, el determinante es 0.
+        //
+        // Una vez intercambiada, se divide cada elemento de la fila k por Akk.
+        // Luego, se resta a cada fila i > k la fila k multiplicada por Aik/Akk. Así, los elementos
+        // de la columna k quedan en 0 para esas filas.
+        //
+        // Todo esto para que quede una matriz triangular superior. Así, el determinante es el
+        // producto de los elementos de la diagonal.
+        for k in 0..n {
+            // Obtengo el elemento de la diagonal (Akk, que será el pivote)
+            let mut pivot = matrix.get(k, k).unwrap();
+            if nearly_equal(pivot, 0.0) {
+                // Busco la primera fila tal que Aik != 0
+                let mut found = false;
+                let mut i = k + 1;
+                while !found && i < n {
+                    pivot = matrix.get(i, k).unwrap();
+                    if nearly_equal(pivot, 0.0) {
+                        i += 1;
+                    } else {
+                        found = true;
                     }
-                    i_max = i;
-                    determinante = -determinante;
+                }
+                if !found {
+                    // No existe tal fila, el determinante es 0
+                    return Ok(0.0);
+                } else {
+                    // Intercambio la fila k con la fila i, intercambiando
+                    // el valor de cada fila columna por columna.
+                    for j in 0..n {
+                        let tmp = matrix.get(k, j)?;
+                        matrix.set(k, j, matrix.get(i, j)?)?;
+                        matrix.set(i, j, tmp)?;
+                    }
+                    // Cambio el signo del determinante, ya que det(E tipo I) = -1
+                    determinant = -determinant;
                 }
             }
 
-            // Comparo la fila k con las siguientes
-            for i in k + 1..rows {
-                // Busco la relacion que hay entre la fila k y la fila i
-                let factor = matrix.get(i, k).unwrap() / matrix.get(k, k).unwrap();
+            // Ahora, toca restar a cada fila i > k la fila k multiplicada por Aik/Akk
 
-                // Resto a cada columna de la fila i los valores de la fila k multiplicados por el factor
-                // fi - factor * fk
-                for j in 0..cols {
-                    let new_value = matrix.get(i, j).unwrap() - factor * matrix.get(k, j).unwrap();
-                    matrix.set(i, j, new_value).unwrap();
+            // Itero fila por fila
+            for i in (k + 1)..n {
+                // factor = Aik / Akk
+                let factor = matrix.get(i, k)? / pivot;
+
+                // Resto a cada elemento de la fila i la fila k multiplicada por el factor
+                // Nótese que itero sobre las columnas k a n-1, ya que las columnas anteriores
+                // ya están en 0.
+                for j in k..n {
+                    let new_value = matrix.get(i, j)? - factor * matrix.get(k, j)?;
+                    matrix.set(i, j, new_value)?;
                 }
+
+                // No hace falta actualizar el determinante, ya que una operación tipo III
+                // no cambia el valor del determinante.
             }
 
-            // A  ctualizo el determinante
-            determinante *= matrix.get(k, k).unwrap();
+            // Como mi objetivo es calcular el determinante de una matriz triangular superior,
+            // y ya sé que el valor de este elemento de la diagonal no cambiará, lo multiplico
+            // directamente al determinante acumulado.
+            determinant *= matrix.get(k, k).unwrap();
         }
 
-        // determinante = 1.0;
-        // for k in 0..rows {
-        //     determinante *= matrix.get(k, k).unwrap();
-        // }
-
-        // println!("Final Matrix: {}",matrix);
-        Ok(determinante)
+        Ok(determinant)
     }
 
     /// Retorna la inversa calculada con Gauss Jhordan
