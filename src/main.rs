@@ -1,6 +1,7 @@
 mod functions;
 mod matrix;
 mod parser;
+mod utils;
 mod value;
 
 use matrix::Matrix;

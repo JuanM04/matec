@@ -1,4 +1,13 @@
 // En este archivo se implementa la estructura de datos `Matrix` y sus métodos.
+// Aquí se encuentran las implementaciones de
+// - Suma de matrices
+// - Multiplicación de matrices
+// - Multiplicación de matrices por un escalar
+// - Obtención de la matriz transpuesta
+// - Obtención de la matriz inversa
+// - Obtención del determinante de una matriz
+
+use crate::utils::nearly_equal;
 
 mod display;
 mod iter;
@@ -109,10 +118,12 @@ impl Matrix {
             return false;
         }
 
+        // Recorre la matriz y verifica que todos los elementos
+        // en la diagonal principal sean 1 y los demás sean 0.
         for (i, j, val) in self {
-            if i == j && val != 1.0 {
+            if i == j && !nearly_equal(val, 1.0) {
                 return false;
-            } else if i != j && val != 0.0 {
+            } else if i != j && !nearly_equal(val, 0.0) {
                 return false;
             }
         }
@@ -120,28 +131,32 @@ impl Matrix {
     }
 
     /// Suma dos matrices y retorna una nueva matriz.
-    pub fn add(&self, right: &Matrix) -> Result<Matrix, &'static str> {
-        if self.rows != right.rows || self.cols != right.cols {
+    pub fn add(left: &Matrix, right: &Matrix) -> Result<Matrix, &'static str> {
+        if left.rows != right.rows || left.cols != right.cols {
             return Err("La suma de matrices solo está definida para matrices de igual dimensión");
         }
 
-        let mut result = Matrix::new(self.rows, self.cols);
-        for (i, j, val) in self {
-            result.set(i, j, val + right.get(i, j)?)?;
+        let mut result = Matrix::new(left.rows, left.cols);
+        for i in 0..result.rows {
+            for j in 0..result.cols {
+                // Esto es Aij + Bij = Cij
+                let val = left.get(i, j)? + right.get(i, j)?;
+                result.set(i, j, val)?;
+            }
         }
         Ok(result)
     }
 
     /// Multiplica dos matrices (MxN y NxP) y retorna una nueva matriz (MxP).
-    pub fn mul(&self, right: &Matrix) -> Result<Matrix, &'static str> {
-        if self.cols != right.rows {
+    pub fn multiply(left: &Matrix, right: &Matrix) -> Result<Matrix, &'static str> {
+        if left.cols != right.rows {
             return Err(
                 "La multiplicación de matrices solo está definida para matrices de MxN y NxP",
             );
         }
 
         // El resultado de la multiplicación de matrices es una matriz MxP.
-        let mut result = Matrix::new(self.rows, right.cols);
+        let mut result = Matrix::new(left.rows, right.cols);
 
         for m in 0..result.rows {
             for p in 0..result.cols {
@@ -149,8 +164,9 @@ impl Matrix {
 
                 // Suma de los productos de los elementos de la fila i de la matriz izquierda
                 // con los elementos de la columna j de la matriz derecha.
-                for n in 0..self.cols {
-                    sum += self.get(m, n)? * right.get(n, p)?;
+                for n in 0..left.cols {
+                    // Esto es Amn * Bnp
+                    sum += left.get(m, n)? * right.get(n, p)?;
                 }
                 result.set(m, p, sum)?;
             }
@@ -159,14 +175,16 @@ impl Matrix {
         Ok(result)
     }
 
+    /// Calcula la potencia de una matriz cuadrada. Retorna una nueva matriz.
     pub fn pow(&self, exp: f64) -> Result<Matrix, &'static str> {
         if !self.is_square() {
             return Err("La potencia solo está definida para matrices cuadradas");
         }
-        if exp.fract() != 0.0 {
+        if !nearly_equal(exp.fract(), 0.0) {
             return Err("La potencia solo está definida para exponentes enteros");
         }
 
+        // Si el exponente es negativo, calcula la inversa de la matriz.
         let base = if exp < 0.0 {
             self.inverse()?
         } else {
@@ -177,7 +195,8 @@ impl Matrix {
 
         let mut result = Matrix::identity(self.rows);
         for _ in 0..exp {
-            result = result.mul(&base)?;
+            // Realiza la multiplicación de la matriz por la pase.
+            result = Matrix::multiply(&base, &result)?;
         }
         Ok(result)
     }
@@ -192,9 +211,11 @@ impl Matrix {
         result
     }
 
+    /// Multiplica la matriz por un escalar y retorna una nueva matriz.
     pub fn scale(&self, scalar: MatrixItem) -> Matrix {
         let mut result = Matrix::new(self.rows, self.cols);
         for (i, j, val) in self {
+            // Multiplica cada elemento de la matriz por el escalar.
             result.set(i, j, val * scalar).unwrap();
         }
         result

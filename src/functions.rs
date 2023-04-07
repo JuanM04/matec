@@ -1,7 +1,9 @@
 // Aquí se definen múltiples funciones numéricas.
 // Todas pueden recibir un número real o una matriz, y se validará correspondientemente.
 
+use super::matrix::Matrix;
 use super::value::Value;
+use super::utils::nearly_equal;
 
 type FnResult = Result<Value, String>;
 
@@ -12,7 +14,7 @@ pub fn add(left: &Value, right: &Value) -> FnResult {
         (Value::Scalar(a), Value::Scalar(b)) => Ok(Value::Scalar(a + b)),
         // Si ambos son matrices, se suman.
         // Ver cómo se implementa la suma de matrices en matrix/mod.rs
-        (Value::Matrix(a), Value::Matrix(b)) => Ok(Value::Matrix(a.add(b)?)),
+        (Value::Matrix(a), Value::Matrix(b)) => Ok(Value::Matrix(Matrix::add(a, b)?)),
         _ => Err("La suma entre matrices y reales no está definida".to_string()),
     }
 }
@@ -41,7 +43,7 @@ pub fn multiply(left: &Value, right: &Value) -> FnResult {
         (Value::Scalar(a), Value::Scalar(b)) => Ok(Value::Scalar(a * b)),
         // Si ambos son matrices, se multiplican.
         // Ver cómo se implementa la multiplicación de matrices en matrix/mod.rs
-        (Value::Matrix(a), Value::Matrix(b)) => Ok(Value::Matrix(a.mul(b)?)),
+        (Value::Matrix(a), Value::Matrix(b)) => Ok(Value::Matrix(Matrix::multiply(a, b)?)),
         // Si uno es un número real y el otro una matriz, se escala la matriz por el número.
         // Ver cómo se implementa la multiplicación por un escalar en matrix/mod.rs
         (Value::Scalar(a), Value::Matrix(b)) => Ok(Value::Matrix(b.scale(*a))),
@@ -54,7 +56,7 @@ pub fn inverse(x: &Value) -> FnResult {
     match x {
         // Si es un número real, se divide 1 entre él.
         Value::Scalar(x) => {
-            if *x == 0.0 {
+            if nearly_equal(*x, 0.0) {
                 return Err("1/0 no está definido".to_string());
             }
             Ok(Value::Scalar(1.0 / x))
