@@ -1,74 +1,51 @@
 # Operaciones de Matrices
 
-## Funcionameinto básico
+Trabajo práctico para Matemática C, 2023.
 
-```
-> 1 + 1
-ans = 2
+Descargas para [Windows (32 bits)](), [Windows (64 bits)]() y [Linux]().
 
-> 2*6 ; ans/3 ; 2^ans
-ans = 16
+## Desarrollo
 
-> t = sqrt(2)
-t = 1.4142
+Se necesita tener [Rust](https://www.rust-lang.org/es/) instalado. Luego, para correr el código basta con ejecutar `cargo run`. Para compilarlo, se corre `cargo build --release` y el ejecutable se encontrará en `target/release/matec`.
 
-> t^2
-ans = 2
+> **Note**  
+> Se recomienda usar [Visual Studio Code](https://code.visualstudio.com/) junto a las extensiones recomendadas en `.vscode/extensions.json`.
 
-> [1,2,3]
-ans =   1   2   3
-
-> [1;2;3]
-ans =   1
-        2
-        3
-
-> [1,2,3;4,5,6;7,8,9]
-ans =   1   2   3
-        4   5   6
-        7   8   9
-
-> [1,2;1,3]\[4;5]
-ans =   2
-        1
-```
+## Especificación
 
 ### Operaciones
 
-| Nombre | Descripción                         | Implementada |
-| :----- | :---------------------------------- | :----------: |
-| `+`    | Suma                                |      ✔️      |
-| `-`    | Resta                               |      ✔️      |
-| `*`    | Multiplicación                      |      ✔️      |
-| `/`    | División                            |      ✔️      |
-| `\`    | División a la derecha (`a/b = b\a`) |      ✔️      |
-| `^`    | Potenciación                        |      ✔️      |
-| `!`    | Factorial                           |      ✔️      |
-| `'`    | Traspuesta (`A' = transpose(A)`)    |      ✔️      |
+| Nombre              | Descripción                              |
+| :------------------ | :--------------------------------------- |
+| `+`                 | Suma                                     |
+| `-`                 | Resta                                    |
+| `*`                 | Multiplicación                           |
+| `/`                 | División                                 |
+| `\`                 | División a la derecha (`a/b = b\a`)      |
+| `^`, `pow(a, n)`    | Potenciación                             |
+| `!`, `factorial(n)` | Factorial                                |
+| `'`, `transpose(A)` | Traspuesta de una matriz                 |
+| `abs(n)`            | Valor absoluto                           |
+| `sqrt(n)`           | Raíz cuadrada                            |
+| `inv(a)`            | Inverso (de un real o de una matriz)     |
+| `sin(x)`            | Seno                                     |
+| `cos(x)`            | Coseno                                   |
+| `tan(x)`            | Tangente                                 |
+| `log(x)`            | Logarítmo natural                        |
+| `det(A)`            | Determinante                             |
+| `linsolve(A, b)`    | Resuelve un sistema de ecuaciones lineal |
 
-### Funciones
+### Comandos
 
-| Nombre           | Descripción                    | Implementada |
-| :--------------- | :----------------------------- | :----------: |
-| `exit`           | Termina el programa            |      ✔️      |
-| `clc`            | Limpia la consola              |      ✔️      |
-| `abs(n)`         | Valor absoluto de "n"          |      ✔️      |
-| `sqrt(n)`        | Raíz cuadrada de "n"           |      ✔️      |
-| `pow(a, n)`      | "a" a la n-ésima potencia      |      ✔️      |
-| `inv(x)`         | Inverso de "x" (real o matriz) |      ✔️      |
-| `factorial(n)`   | "n" factorial                  |      ✔️      |
-| `sin(x)`         | Seno de "x"                    |      ✔️      |
-| `cos(x)`         | Coseno de "x"                  |      ✔️      |
-| `tan(x)`         | Tangente de "x"                |      ✔️      |
-| `log(x)`         | Logarítmo natural de "x"       |      ✔️      |
-| `transpose(A)`   | Transpuesta de la matriz "A"   |      ✔️      |
-| `det(A)`         | Determinante de la matriz "A"  |      ✔️      |
-| `linsolve(A, b)` | Resuelve un sistema lineal     |      ❌      |
+| Nombre | Descripción         |
+| :----- | :------------------ |
+| `exit` | Termina el programa |
+| `clc`  | Limpia la consola   |
 
 ### Variables
 
-| Nombre | Valor                            | Implementada |
-| :----: | :------------------------------- | :----------: |
-|  ans   | Resultado de la última operación |      ✔️      |
-|   pi   | 3.1415 ...                       |      ✔️      |
-|   e    | 2.7182 ...                       |      ✔️      |
+| Nombre | Valor                            |
+| :----: | :------------------------------- |
+|  ans   | Resultado de la última operación |
+|   pi   | 3.1415 ...                       |
+|   e    | 2.7182 ...                       |
