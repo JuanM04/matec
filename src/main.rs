@@ -256,7 +256,7 @@ fn evaluate_expression(expr: &AstNode, variables: &Variables) -> Result<Value, S
                     functions::det(&evaluated_args[0])
                 }
                 "linsolve" => {
-                    if evaluated_args.len() != 1 {
+                    if evaluated_args.len() != 2 {
                         return Err("La función linsolve() recibe dos argumentos".to_string());
                     }
                     functions::linsolve(&evaluated_args[0], &evaluated_args[1])
