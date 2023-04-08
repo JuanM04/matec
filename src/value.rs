@@ -1,4 +1,5 @@
 use super::matrix::Matrix;
+use super::utils::format_float;
 use std::fmt;
 
 #[derive(Clone)]
@@ -8,10 +9,10 @@ pub enum Value {
 }
 
 impl fmt::Display for Value {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-      match self {
-          Value::Scalar(s) => write!(f, "{}", s),
-          Value::Matrix(m) => write!(f, "{}", m),
-      }
-  }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::Scalar(s) => write!(f, "{}", format_float(*s)),
+            Value::Matrix(m) => write!(f, "{}", m),
+        }
+    }
 }

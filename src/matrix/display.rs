@@ -2,15 +2,14 @@
 // Se encarga de que se vea lindo y bien justificado. Excede a la materia.
 
 use super::Matrix;
+use crate::utils::format_float;
 use std::fmt;
 
 impl fmt::Display for Matrix {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut elements = vec![vec![String::new(); self.cols]; self.rows];
         for (row, col, val) in self {
-            elements[row][col] = format!("{:.5}", val)
-                .trim_end_matches(['.', '0'])
-                .to_string();
+            elements[row][col] = format_float(val);
         }
 
         let mut widths = vec![0; self.cols];

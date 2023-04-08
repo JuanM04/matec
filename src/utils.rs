@@ -21,3 +21,14 @@ pub fn nearly_equal(a: f64, b: f64) -> bool {
         diff / (abs_a + abs_b) < EPSILON
     }
 }
+
+/// Formatea un número flotante para que se parezca a un entero si es
+/// posible.
+pub fn format_float(n: f64) -> String {
+    let rounded = n.round();
+    if nearly_equal(n, rounded) {
+        format!("{}", rounded)
+    } else {
+        format!("{:.4}", n)
+    }
+}
