@@ -23,9 +23,9 @@ fn main() {
     variables.insert("e".to_string(), Value::Scalar(std::f64::consts::E));
 
     // Impresión del mensaje de bienvenida.
-    println!("#===========================#");
-    println!("# Clon sin nombre de Matlab #");
-    println!("#===========================#");
+    println!("#=========================#");
+    println!("# Operaciones de Matrices #");
+    println!("#=========================#");
     println!("");
     println!("Por Majoros, Lorenzo; y Seery, Juan Martín");
     println!("Para Matemática C - 2023");
