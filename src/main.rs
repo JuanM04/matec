@@ -285,35 +285,36 @@ fn evaluate_expression(expr: &AstNode, variables: &Variables) -> Result<Value, S
 fn show_menu () {
     println!("Trabajo práctico para Matemática C, 2023.\nPor Majoros, Lorenzo y Seery, Juan Martín;
 
-\tComandos
 
-\tNombre\t\tDescripción         
+    Comandos
 
-\t?, help\t\tMostrar comandos disponibles
-\tclc\t\tLimpia la consola
-\texit\t\tTermina el programa
+    Nombre     Descripción         
+
+    ?, help    Mostrar comandos disponibles
+    clc        Limpia la consola
+    exit       Termina el programa
 
 
-\tOperaciones
+    Operaciones
 
-\tNombre\t\t\tDescripción                         
+    Nombre             Descripción                         
 
-\t+\t\t\tSuma                                     
-\t-\t\t\tResta                                    
-\t*\t\t\tMultiplicación                           
-\t/\t\t\tDivisión                                 
-\t\\\t\t\tDivisión a la derecha (a/b = b\\a)      
-\t^, pow(a, n)\t\tPotenciación                             
-\t!, factorial(n)\t\tFactorial                                
-\t', transpose(A)\t\tTraspuesta de una matriz                 
-\tabs(n)\t\t\tValor absoluto                           
-\tsqrt(n)\t\t\tRaíz cuadrada                           
-\tinv(a)\t\t\tInverso (de un real o de una matriz)     
-\tsin(x)\t\t\tSeno                                     
-\tcos(x)\t\t\tCoseno                                   
-\ttan(x)\t\t\tTangente                                 
-\tlog(x)\t\t\tLogarítmo natural                        
-\tdet(A)\t\t\tDeterminante                             
-\tlinsolve(A, b)\t\tResuelve un sistema de ecuaciones lineal 
+    +                  Suma                                     
+    -                  Resta                                    
+    *                  Multiplicación                           
+    /                  División                                 
+    \\                  División a la derecha (a/b = b\\a)      
+    ^, pow(a, n)       Potenciación                             
+    !, factorial(n)    Factorial                                
+    ', transpose(A)    Traspuesta de una matriz                 
+    abs(n)             Valor absoluto                           
+    sqrt(n)            Raíz cuadrada                           
+    inv(a)             Inverso (de un real o de una matriz)     
+    sin(x)             Seno                                     
+    cos(x)             Coseno                                   
+    tan(x)             Tangente                                 
+    log(x)             Logarítmo natural                        
+    det(A)             Determinante                             
+    linsolve(A, b)     Resuelve un sistema de ecuaciones lineal 
     "); 
 }
