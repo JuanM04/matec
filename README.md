@@ -2,7 +2,7 @@
 
 Trabajo práctico para Matemática C, 2023.
 
-Descargas para [Windows (32 bits)](), [Windows (64 bits)]() y [Linux]().
+Descargas para [Windows (32 bits)](https://github.com/JuanM04/matec/releases/download/v1.0.0/matrices-1.0.0-x86.exe), [Windows (64 bits)](https://github.com/JuanM04/matec/releases/download/v1.0.0/matrices-1.0.0-x64.exe) y [Linux](https://github.com/JuanM04/matec/releases/download/v1.0.0/matrices-1.0.0-linux.tar.gz).
 
 ## Desarrollo
 
