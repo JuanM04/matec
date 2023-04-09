@@ -141,7 +141,7 @@ impl Matrix {
     /// Obtiene el elemento en la posición (row, col).
     pub fn get(&self, row: usize, col: usize) -> Result<MatrixItem, &'static str> {
         if row >= self.rows || col >= self.cols {
-            return Err("Indice fuera de rango");
+            return Err("Índice fuera de rango");
         }
 
         Ok(self.data[row * self.cols + col])
@@ -150,7 +150,7 @@ impl Matrix {
     /// Cambia el elemento en la posición (row, col) con el valor `val`.
     pub fn set(&mut self, row: usize, col: usize, val: MatrixItem) -> Result<(), &'static str> {
         if row >= self.rows || col >= self.cols {
-            return Err("Indice fuera de rango");
+            return Err("Índice fuera de rango");
         }
 
         self.data[row * self.cols + col] = val;
