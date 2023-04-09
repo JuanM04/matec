@@ -25,6 +25,12 @@ pub struct Matrix {
 }
 
 impl Matrix {
+    // -----------------
+    // Métodos estáticos
+    // -----------------
+    //
+    // Estos métodos se llaman como `Matrix::new(...)`, `Matrix::add(...)`
+
     /// Crea una matriz de MxN elementos, todos inicializados en 0.
     pub fn new(rows: usize, cols: usize) -> Matrix {
         Matrix {
@@ -110,6 +116,60 @@ impl Matrix {
         Ok(matrix)
     }
 
+    /// Suma dos matrices y retorna una nueva matriz.
+    pub fn add(left: &Matrix, right: &Matrix) -> Result<Matrix, &'static str> {
+        if left.rows != right.rows || left.cols != right.cols {
+            return Err("La suma de matrices solo está definida para matrices de igual dimensión");
+        }
+
+        let mut result = Matrix::new(left.rows, left.cols);
+        for i in 0..result.rows {
+            for j in 0..result.cols {
+                // Esto es Aij + Bij = Cij
+                let val = left.get(i, j)? + right.get(i, j)?;
+                result.set(i, j, val)?;
+            }
+        }
+        Ok(result)
+    }
+
+    /// Multiplica dos matrices (MxN y NxP) y retorna una nueva matriz (MxP).
+    pub fn multiply(left: &Matrix, right: &Matrix) -> Result<Matrix, &'static str> {
+        if left.cols != right.rows {
+            return Err(
+                "La multiplicación de matrices solo está definida para matrices de MxN y NxP",
+            );
+        }
+
+        // El resultado de la multiplicación de matrices es una matriz MxP.
+        let mut result = Matrix::new(left.rows, right.cols);
+
+        for m in 0..result.rows {
+            for p in 0..result.cols {
+                // Inicializa el elemento Cmp en 0.
+                let mut sum: f64 = 0.0;
+
+                // Suma de los productos de los elementos de la fila i de la matriz izquierda
+                // con los elementos de la columna j de la matriz derecha.
+                for n in 0..left.cols {
+                    // Esto es Amn * Bnp
+                    sum += left.get(m, n)? * right.get(n, p)?;
+                }
+                result.set(m, p, sum)?;
+            }
+        }
+
+        Ok(result)
+    }
+
+    // --------------------
+    // Métodos de instancia
+    // --------------------
+    //
+    // Dada una matriz ya inicializada (`let matrix = Matrix::new(2, 2);`), se pueden
+    // llamar como `matrix.rows()` o `matrix.is_square()`. El parámetro `&self` es
+    // la referencia a la matriz que se está usando.
+
     /// Obtiene el elemento en la posición (row, col).
     pub fn get(&self, row: usize, col: usize) -> Result<MatrixItem, &'static str> {
         if row >= self.rows || col >= self.cols {
@@ -160,51 +220,6 @@ impl Matrix {
             }
         }
         true
-    }
-
-    /// Suma dos matrices y retorna una nueva matriz.
-    pub fn add(left: &Matrix, right: &Matrix) -> Result<Matrix, &'static str> {
-        if left.rows != right.rows || left.cols != right.cols {
-            return Err("La suma de matrices solo está definida para matrices de igual dimensión");
-        }
-
-        let mut result = Matrix::new(left.rows, left.cols);
-        for i in 0..result.rows {
-            for j in 0..result.cols {
-                // Esto es Aij + Bij = Cij
-                let val = left.get(i, j)? + right.get(i, j)?;
-                result.set(i, j, val)?;
-            }
-        }
-        Ok(result)
-    }
-
-    /// Multiplica dos matrices (MxN y NxP) y retorna una nueva matriz (MxP).
-    pub fn multiply(left: &Matrix, right: &Matrix) -> Result<Matrix, &'static str> {
-        if left.cols != right.rows {
-            return Err(
-                "La multiplicación de matrices solo está definida para matrices de MxN y NxP",
-            );
-        }
-
-        // El resultado de la multiplicación de matrices es una matriz MxP.
-        let mut result = Matrix::new(left.rows, right.cols);
-
-        for m in 0..result.rows {
-            for p in 0..result.cols {
-                let mut sum = 0_f64;
-
-                // Suma de los productos de los elementos de la fila i de la matriz izquierda
-                // con los elementos de la columna j de la matriz derecha.
-                for n in 0..left.cols {
-                    // Esto es Amn * Bnp
-                    sum += left.get(m, n)? * right.get(n, p)?;
-                }
-                result.set(m, p, sum)?;
-            }
-        }
-
-        Ok(result)
     }
 
     /// Calcula la potencia de una matriz cuadrada. Retorna una nueva matriz.

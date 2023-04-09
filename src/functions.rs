@@ -51,7 +51,7 @@ pub fn multiply(left: &Value, right: &Value) -> FnResult {
     }
 }
 
-// Calcula el inverso de un valor.
+/// Calcula el inverso de un valor.
 pub fn inverse(x: &Value) -> FnResult {
     match x {
         // Si es un número real, se divide 1 entre él.
