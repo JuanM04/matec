@@ -84,38 +84,6 @@ impl Matrix {
         matrix
     }
 
-    /// Crea una matriz elemental de tipo I.
-    /// Permuta las filas `i` y `j`.
-    pub fn elemental_i(size: usize, i: usize, j: usize) -> Result<Matrix, &'static str> {
-        let mut matrix = Matrix::identity(size);
-        matrix.set(i, i, 0.0)?;
-        matrix.set(i, j, 1.0)?;
-        matrix.set(j, j, 0.0)?;
-        matrix.set(j, i, 1.0)?;
-        Ok(matrix)
-    }
-
-    /// Crea una matriz elemental de tipo II.
-    /// Multiplica la fila `i` por el escalar `scalar`.
-    pub fn elemental_ii(size: usize, i: usize, scalar: f64) -> Result<Matrix, &'static str> {
-        let mut matrix = Matrix::identity(size);
-        matrix.set(i, i, scalar)?;
-        Ok(matrix)
-    }
-
-    /// Crea una matriz elemental de tipo III.
-    /// Le suma a la fila `i` el producto de la fila `j` por el escalar `scalar`.
-    pub fn elemental_iii(
-        size: usize,
-        i: usize,
-        j: usize,
-        scalar: f64,
-    ) -> Result<Matrix, &'static str> {
-        let mut matrix = Matrix::identity(size);
-        matrix.set(i, j, scalar)?;
-        Ok(matrix)
-    }
-
     /// Suma dos matrices y retorna una nueva matriz.
     pub fn add(left: &Matrix, right: &Matrix) -> Result<Matrix, &'static str> {
         if left.rows != right.rows || left.cols != right.cols {
@@ -222,6 +190,49 @@ impl Matrix {
         true
     }
 
+    /// Operación elemental de tipo I.
+    /// Permuta las filas `i` y `j`.
+    pub fn swap_rows(&mut self, i: usize, j: usize) -> Result<(), &'static str> {
+        if i >= self.rows || j >= self.rows {
+            return Err("Índice fuera de rango");
+        }
+
+        for k in 0..self.cols {
+            let tmp = self.get(i, k)?;
+            self.set(i, k, self.get(j, k)?)?;
+            self.set(j, k, tmp)?;
+        }
+        Ok(())
+    }
+
+    /// Operación elemental de tipo II.
+    /// Multiplica la fila `i` por el escalar `scalar`.
+    pub fn scale_row(&mut self, i: usize, scalar: f64) -> Result<(), &'static str> {
+        if i >= self.rows {
+            return Err("Índice fuera de rango");
+        }
+
+        for j in 0..self.cols {
+            let val = self.get(i, j)? * scalar;
+            self.set(i, j, val)?;
+        }
+        Ok(())
+    }
+
+    /// Operación elemental de tipo III.
+    /// Le suma a la fila `i` el producto de la fila `j` por el escalar `scalar`.
+    pub fn add_row(&mut self, i: usize, j: usize, scalar: f64) -> Result<(), &'static str> {
+        if i >= self.rows || j >= self.rows {
+            return Err("Índice fuera de rango");
+        }
+
+        for k in 0..self.cols {
+            let val = self.get(i, k)? + self.get(j, k)? * scalar;
+            self.set(i, k, val)?;
+        }
+        Ok(())
+    }
+
     /// Calcula la potencia de una matriz cuadrada. Retorna una nueva matriz.
     pub fn pow(&self, exp: f64) -> Result<Matrix, String> {
         if !self.is_square() {
@@ -311,13 +322,8 @@ impl Matrix {
                     // No existe tal fila, el determinante es 0
                     return Ok(0.0);
                 } else {
-                    // Intercambio la fila k con la fila i, intercambiando
-                    // el valor de cada fila columna por columna.
-                    for j in 0..n {
-                        let tmp = matrix.get(k, j)?;
-                        matrix.set(k, j, matrix.get(i, j)?)?;
-                        matrix.set(i, j, tmp)?;
-                    }
+                    // Permuto la fila k con la fila i.
+                    matrix.swap_rows(k, i)?;
                     // Cambio el signo del determinante, ya que det(E tipo I) = -1
                     determinant = -determinant;
                 }
@@ -413,20 +419,16 @@ impl Matrix {
                             .to_string(),
                     );
                 } else {
-                    // Creo la matriz elemental que permuta la fila k con la fila i
-                    let permutation = Matrix::elemental_i(n, k, i)?;
-                    // Multiplico la matriz y la acumuladora por la matriz elemental
-                    matrix = Matrix::multiply(&permutation, &matrix)?;
-                    accum = Matrix::multiply(&permutation, &accum)?;
+                    // Permuto la fila k con la fila i.
+                    matrix.swap_rows(k, i)?;
+                    accum.swap_rows(k, i)?;
                 }
             }
 
-            // Ahora, toca dividir cada elemento de la fila k por Akk.
-            // Creo la matriz elemental que divide la fila k por Akk
-            let scale = Matrix::elemental_ii(n, k, 1.0 / pivot)?;
-            // Multiplico la matriz y la acumuladora por la matriz elemental
-            matrix = Matrix::multiply(&scale, &matrix)?;
-            accum = Matrix::multiply(&scale, &accum)?;
+            // Divido la fila k por Akk, así Akk = 1
+            let factor = 1.0 / pivot;
+            matrix.scale_row(k, factor)?;
+            accum.scale_row(k, factor)?;
 
             // Ahora, toca restar a cada fila i != k la fila k multiplicada por Aik.
             for i in 0..n {
@@ -434,11 +436,10 @@ impl Matrix {
                     // factor = -Aik
                     let factor = -matrix.get(i, k).unwrap();
 
-                    // Creo la matriz elemental que resta a la fila i la fila k multiplicada por Aik
-                    let elimination = Matrix::elemental_iii(n, i, k, factor)?;
-                    // Multiplico la matriz y la acumuladora por la matriz elemental
-                    matrix = Matrix::multiply(&elimination, &matrix)?;
-                    accum = Matrix::multiply(&elimination, &accum)?;
+                    // Resto a cada elemento de la fila i la fila k multiplicada por el factor,
+                    // así los elementos de la columna k quedan en 0.
+                    matrix.add_row(i, k, factor)?;
+                    accum.add_row(i, k, factor)?;
                 }
             }
         }
