@@ -2,8 +2,8 @@
 // Todas pueden recibir un número real o una matriz, y se validará correspondientemente.
 
 use super::matrix::Matrix;
-use super::value::Value;
 use super::utils::nearly_equal;
+use super::value::Value;
 
 type FnResult = Result<Value, String>;
 
@@ -188,203 +188,54 @@ pub fn det(a: &Value) -> FnResult {
 pub fn linsolve(a: &Value, b: &Value) -> FnResult {
     if let Value::Matrix(a) = a {
         if let Value::Matrix(b) = b {
-            
-    // En linsolve se puede hacer que si b es un scalar hacer una matriz donde todos sus indices sean ese escalar ( mas que nada implementarlo para 0 por los sistemas homogeneos)
-    // Evaluar que a y b tengan la misma cantidad de filas
-    // Revisar que a sea cuadrada
-    // Revisar que b tenga una sola columna
+            // En linsolve se puede hacer que si b es un scalar hacer una matriz donde todos sus indices sean ese escalar ( mas que nada implementarlo para 0 por los sistemas homogeneos)
+            // Evaluar que a y b tengan la misma cantidad de filas
+            // Revisar que a sea cuadrada
+            // Revisar que b tenga una sola columna
 
-    if a.rows() != b.rows() {
-        return Err("La cantidad de filas de A y b no coincide".to_string());
-    }
-
-    if b.cols() != 1 {
-        return Err("La matriz b debe tener una sola columna".to_string());
-    }
-
-    // Matriz cuadrada
-
-    if a.is_square() {
-        if !nearly_equal(a.determinant()?, 0.0) {
-            // A es No singular ( invertible ) el sistema es compatible determinado
-            // Ax=b
-            // x=A^(-1)b
-            return Ok(Value::Matrix(Matrix::multiply(&a.inverse()?, b)?)); 
-        } else {
-            // Matriz cuadrada
-            // Determinante 0 ( singular )
-            // Puede ser compatible indeterminado o incompatible
-
-            let mut copya = a.clone();
-            let mut copyb = b.clone();
-
-            let n = copya.rows();
-
-            for k in 0..n {
-                // Obtengo el elemento de la diagonal (Akk, que será el pivote)
-                let mut pivot = copya.get(k, k).unwrap();
-                if nearly_equal(pivot, 0.0) {
-                    // Busco la primera fila tal que Aik != 0
-                    let mut found = false;
-                    let mut i = k + 1;
-                    while !found && i < n {
-                        pivot = copya.get(i, k).unwrap();
-                        if nearly_equal(pivot, 0.0) {
-                            i += 1;
-                        } else {
-                            found = true;
-                        }
-                    }
-                    if !found {
-                        // No existe tal fila, el determinante es 0
-                        // si k es la ultima fila significa que la ultima fila es todo 0
-                        // si b[k][0] es 0 el sistema es indeterminado, sino incompatible
-                        // en caso de que no se este evaluando la ultima fila se encontro una columna con todo ceros, que puede ser que defina algo, pero no sabria muy bien como chequearlo
-                        if k == copya.rows() - 1 {
-                            if copyb.get(k, 0)? == 0.0 {
-                                return Err("[+] Sistema Compatible Indeterminado".to_string());
-                            } else {
-                                return Err("[+] Sistema Incompatible".to_string());
-                            }
-                        }
-                        continue; // no hago cuanta del triangulito porque ya toda la columna es 0 o termino la matriz
-                    } else {
-                        // Intercambio la fila k con la fila i, intercambiando
-                        // el valor de cada fila columna por columna.
-                        for j in 0..n {
-                            let tmp = copya.get(k, j)?;
-                            copya.set(k, j, copya.get(i, j)?)?;
-                            copya.set(i, j, tmp)?;
-                        }
-                        let tmp = copyb.get(k, 0)?;
-                        copyb.set(k, 0, copyb.get(i, 0)?)?;
-                        copyb.set(i, 0, tmp)?;
-                    }
-                }
-
-                // Ahora, toca restar a cada fila i > k la fila k multiplicada por Aik/Akk
-
-                // Itero fila por fila
-                for i in (k + 1)..n {
-                    // factor = Aik / Akk
-                    let factor = copya.get(i, k)? / pivot;
-
-                    // Resto a cada elemento de la fila i la fila k multiplicada por el factor
-                    // Nótese que itero sobre las columnas k a n-1, ya que las columnas anteriores
-                    // ya están en 0.
-                    for j in k..n {
-                        let new_value = copya.get(i, j)? - factor * copya.get(k, j)?;
-                        copya.set(i, j, new_value)?;
-                    }
-                    let new_value = copyb.get(i, 0)? - factor * copyb.get(k, 0)?;
-                    copyb.set(i, 0, new_value)?;
-                }
+            if a.rows() != b.rows() {
+                return Err("La cantidad de filas de A y b no coincide".to_string());
             }
-        }
-    } else {
-        if a.rows() < a.cols() {
-            // Sistema Subdeterminado
-            // Solo puede ser Compatible Indeterminado o Incompatible
-            // println!("Estudio un sistema Subdeterminado M<N");
 
-            let mut copya = a.clone();
-            let mut copyb = b.clone();
-
-            let n = copya.rows();
-
-            for k in 0..n {
-                // Obtengo el elemento de la diagonal (Akk, que será el pivote)
-                let mut pivot = copya.get(k, k).unwrap();
-                if nearly_equal(pivot, 0.0) {
-                    // Busco la primera fila tal que Aik != 0
-                    let mut found = false;
-                    let mut i = k + 1;
-                    while !found && i < n {
-                        pivot = copya.get(i, k).unwrap();
-                        if nearly_equal(pivot, 0.0) {
-                            i += 1;
-                        } else {
-                            found = true;
-                        }
-                    }
-                    if !found {
-                        // No existe tal fila, el determinante es 0
-                        // println!("Alguna fila es todo 0");
-                        // println!("fila {} {}", k, copya);
-                        // si k es la ultima fila significa que la ultima fila es todo 0
-                        // si b[k][0] es 0 el sistema es indeterminado, sino incompatible
-                        // en caso de que no se este evaluando la ultima fila se encontro una columna con todo ceros, que puede ser que defina algo, pero no sabria muy bien como chequearlo
-                        if k == copya.rows() - 1 {
-                            if copyb.get(k, 0)? == 0.0 {
-                                return Err("[+] Sistema Compatible Indeterminado".to_string());
-                            } else {
-                                return Err("[+] Sistema Incompatible".to_string());
-                            }
-                        }
-                        continue; // no hago cuanta del triangulito porque ya toda la columna es 0 o termino la matriz
-                    } else {
-                        // Intercambio la fila k con la fila i, intercambiando
-                        // el valor de cada fila columna por columna.
-                        for j in 0..copya.rows() {
-                            let tmp = copya.get(k, j)?;
-                            copya.set(k, j, copya.get(i, j)?)?;
-                            copya.set(i, j, tmp)?;
-                        }
-                        let tmp = copyb.get(k, 0)?;
-                        copyb.set(k, 0, copyb.get(i, 0)?)?;
-                        copyb.set(i, 0, tmp)?;
-                    }
-                }
-
-                // Ahora, toca restar a cada fila i > k la fila k multiplicada por Aik/Akk
-
-                // Itero fila por fila
-                for i in (k + 1)..n {
-                    // factor = Aik / Akk
-                    let factor = copya.get(i, k)? / pivot;
-
-                    // Resto a cada elemento de la fila i la fila k multiplicada por el factor
-                    // Nótese que itero sobre las columnas k a n-1, ya que las columnas anteriores
-                    // ya están en 0.
-                    for j in 0..copya.cols() {
-                        let new_value = copya.get(i, j)? - factor * copya.get(k, j)?;
-                        copya.set(i, j, new_value)?;
-                    }
-                    let new_value = copyb.get(i, 0)? - factor * copyb.get(k, 0)?;
-                    copyb.set(i, 0, new_value)?;
-                }
+            if b.cols() != 1 {
+                return Err("La matriz b debe tener una sola columna".to_string());
             }
-            // println!("A:{}", copya);
-            // println!("B:{}", copyb);
 
-            // Solo llega a este punto si queda una matriz tal que (ejemplo con 2x3)
-            // a b c | d
-            // 0 b c | 0
+            if a.is_square() && !nearly_equal(a.determinant()?, 0.0) {
+                // A es No singular ( invertible ) el sistema es compatible determinado
+                // Ax=b
+                // x=A^(-1)b
+                return Ok(Value::Matrix(Matrix::multiply(&a.inverse()?, b)?));
+            }
 
-            return Err("[+] Sistema Compatible Indeterminado".to_string());
-        } else {
-            // Sistema Subdeterminado\
+            // Creo la matriz ecuacion (A|b)
 
-            return Err("[!] Sistema Subdeterminado, esta funcion no resuelve bien los sistemas subdeterminados".to_string());
+            // le sumo 1 a cols por el vector B
+            let rows = a.rows();
+            let cols = a.cols() + 1;
+            let mut matrix = Matrix::new(rows, cols);
 
-            // Puede ser Compatible Determinado, Compatible Indeterminado o Incompatible
-            // println!("Estudio un sistema Sobredeterminado M>N");
+            // asigno los valores de A en la matriz
+            for (row, col, val) in a {
+                matrix.set(row, col, val)?;
+            }
 
-            let mut copya = a.clone();
-            let mut copyb = b.clone();
+            // asigno los valores de b en la matriz
+            for i in 0..rows {
+                matrix.set(i, cols - 1, b.get(i, 0)?)?
+            }
 
-            let cols = copya.cols();
-            let rows = copya.rows();
-
-            for k in 0..cols {
+            let mut k = 0;
+            while k < rows && k < cols {
                 // Obtengo el elemento de la diagonal (Akk, que será el pivote)
-                let mut pivot = copya.get(k, k).unwrap();
+                let mut pivot = matrix.get(k, k).unwrap();
                 if nearly_equal(pivot, 0.0) {
                     // Busco la primera fila tal que Aik != 0
                     let mut found = false;
+                    // Solo busco en las filas k+1 a n-1, ya que las filas anteriores ya están en 0
                     let mut i = k + 1;
-                    while !found && i < cols {
-                        pivot = copya.get(i, k).unwrap();
+                    while !found && i < rows {
+                        pivot = matrix.get(i, k).unwrap();
                         if nearly_equal(pivot, 0.0) {
                             i += 1;
                         } else {
@@ -392,87 +243,101 @@ pub fn linsolve(a: &Value, b: &Value) -> FnResult {
                         }
                     }
                     if !found {
-                        // si k es la ultima fila significa que la ultima fila es todo 0
-                        // si b[k][0] es 0 el sistema es indeterminado, sino incompatible
-                        // en caso de que no se este evaluando la ultima fila se encontro una columna con todo ceros, que puede ser que defina algo, pero no sabria muy bien como chequearlo
-                        if k == copya.cols() - 1 {
-                            // chequeo que las relaciones de la utima columna se mantengan, en caso de que no el sistema es incompatible. para que te hagas una idea 
-                            // /  x=2
-                            // \ 3x=3
-                            // claramente este sistema es incompatible porque x tiene que ser 2 y 1 a la vez
-                            let relation_one = copya.get(k,cols-1)? / copyb.get(k, 0)?;
-                            let mut relation_equals = false;
-                            for i in k..copya.rows() {
-                                let value_incognita = copya.get(i, cols-1)?;
-                                let value_b = copyb.get(i,0)?;
-                                let relation_two = value_incognita / value_b;
-                                
-                                relation_equals = nearly_equal(relation_one, relation_two);
-
-                                if !relation_equals {
-                                    break
-                                }
-
-                            }
-                            if relation_equals {
-                                return Err("[+] Sistema Compatible Indeterminado".to_string())
-                            } else {
-                                return Err("[+] Sistema Incompatible".to_string())
-                            }
-                        }
-                        continue; // no hago cuanta del triangulito porque ya toda la columna es 0 o termino la matriz
+                        // Nota: este mensaje no se debería mostrar nunca, ya que el determinante
+                        // debería ser 0. Como nadie quiere un bucle infinito, lo dejo por las dudas.
+                        k += 1;
+                        continue;
                     } else {
-                        // Intercambio la fila k con la fila i, intercambiando
-                        // el valor de cada fila columna por columna.
                         for j in 0..cols {
-                            let tmp = copya.get(k, j)?;
-                            copya.set(k, j, copya.get(i, j)?)?;
-                            copya.set(i, j, tmp)?;
+                            let tmp = matrix.get(k, j)?;
+                            matrix.set(k, j, matrix.get(i, j)?)?;
+                            matrix.set(i, j, tmp)?;
                         }
-                        let tmp = copyb.get(k, 0)?;
-                        copyb.set(k, 0, copyb.get(i, 0)?)?;
-                        copyb.set(i, 0, tmp)?;
                     }
                 }
 
-                // Ahora, toca restar a cada fila i > k la fila k multiplicada por Aik/Akk
+                // Ahora, toca dividir cada elemento de la fila k por Akk.
+                // Creo la matriz elemental que divide la fila k por Akk
+                let scale = 1.0 / matrix.get(k, k)?;
 
-                // Itero fila por fila
-                for i in k + 1..rows {
-                    // factor = Aik / Akk
-                    let factor = copya.get(i, k)? / pivot;
+                for j in 0..cols {
+                    matrix.set(k, j, matrix.get(k, j)? * scale)?;
+                }
 
-                    // Resto a cada elemento de la fila i la fila k multiplicada por el factor
-                    // Nótese que itero sobre las columnas k a n-1, ya que las columnas anteriores
-                    // ya están en 0.
-                    for j in 0..cols {
-                        let new_value = copya.get(i, j)? - factor * copya.get(k, j)?;
-                        copya.set(i, j, new_value)?;
+                // Ahora, toca restar a cada fila i != k la fila k multiplicada por Aik.
+                let mut i = 0;
+                while i < rows && i < cols {
+                    if i != k {
+                        let factor = matrix.get(i, k)? / matrix.get(k, k).unwrap();
+
+                        for j in 0..cols {
+                            let new_value = matrix.get(i, j)? - factor * matrix.get(k, j)?;
+                            matrix.set(i, j, new_value)?;
+                        }
                     }
-                    let new_value = copyb.get(i, 0)? - factor * copyb.get(k, 0)?;
-                    copyb.set(i, 0, new_value)?;
+                    i += 1;
+                }
+                k += 1;
+            }
+
+            // Reviso que la diagonal sean todos numeros distintos de cero
+            let mut k = 0;
+            let mut diagonal_not_cero = true;
+            while k < rows && k < cols - 1 {
+                // si la diagonal tiene un cero diagonal not cero = false
+                if nearly_equal(matrix.get(k, k)?, 0.0) {
+                    diagonal_not_cero = false;
+                    break;
+                }
+                k += 1;
+            }
+
+            // Miro que las ultima fila de A sea de ceros
+            let mut row_all_ceros = true;
+            let mut index_col_cero: i32 = -1;
+            let mut index_row_cero: i32 = -1;
+            for k in (0..rows).rev() {
+                for i in 0..cols {
+                    // miro las filas de abajo para arriba, chequeo que toda la fila sea 0
+                    // en caso de que no sea 0 reviso que el indice encontrado sea de la matriz A o de b
+                    // si el indice esta en la matriz A forma n sistema compatile indeterminado.
+                    // si le indice esta en la matriz b forma un sistema incompatible ya que no hay valor
+                    //   que puedan tomar las incognitas para igualar este valor (todas estan multiplicadas por cero)
+                    if matrix.get(k, i)? != 0.0 {
+                        row_all_ceros = false;
+                        index_row_cero = k as i32;
+                        index_col_cero = i as i32;
+                        break;
+                    }
+                }
+                if !row_all_ceros {
+                    break;
                 }
             }
 
-            // println!("Fin Sobredeterminado");
+            if !row_all_ceros {
+                if index_col_cero == (cols - 1) as i32 {
+                    println!("[!] Sistema Incompatible");
+                    return Ok(Value::Scalar(0.0));
+                } else if !(index_row_cero == (cols - 2) as i32 && diagonal_not_cero) {
+                    println!("[!] Sistema Compatible Indeterminado");
+                    return Ok(Value::Scalar(0.0));
+                }
+            }
 
-            // println!("A:{}", copya);
-            // println!("B:{}", copyb);
+            // creo matriz CS de sistema determinado
 
-            // Solo llega a este punto si el sistema es compatible determinado o incompatible
+            let mut result = Matrix::new(a.cols(),1);
+            for i in 0..a.cols() {
+                result.set(i, 0, matrix.get(i, cols -1)?)?
+            }
 
-            return Err("[+] Sistema Compatible Determinado (Por puro descarte)".to_string());
-        }
-    }
-
-    Err("[+] Funcion Finalizada.".to_string())
-
-
+            return Ok(Value::Matrix(result));
 
         } else {
-            Err("b debe ser una matriz.".to_string())
+            Err("[!] b debe ser una matriz.".to_string())
         }
     } else {
-        Err("A debe ser una matriz".to_string())
+        Err("[!] A debe ser una matriz".to_string())
     }
 }
