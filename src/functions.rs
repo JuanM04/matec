@@ -1,6 +1,8 @@
 // Aquí se definen múltiples funciones numéricas.
 // Todas pueden recibir un número real o una matriz, y se validará correspondientemente.
 
+use crate::utils::format_float;
+
 use super::matrix::Matrix;
 use super::utils::nearly_equal;
 use super::value::Value;
@@ -184,14 +186,17 @@ pub fn det(a: &Value) -> FnResult {
     }
 }
 
-/// Resuelve un sistema de ecuaciones lineales.
+/// Resuelve un sistema de ecuaciones lineales de la forma Ax = b.
+/// A: matriz de coeficientes
+/// b: vector columna de términos independientes
+///
+/// Se resuelve obteniendo la forma escalonada reducida de Gauss-Jordan.
 pub fn linsolve(a: &Value, b: &Value) -> FnResult {
     if let Value::Matrix(a) = a {
         if let Value::Matrix(b) = b {
-            // En linsolve se puede hacer que si b es un scalar hacer una matriz donde todos sus indices sean ese escalar ( mas que nada implementarlo para 0 por los sistemas homogeneos)
-            // Evaluar que a y b tengan la misma cantidad de filas
-            // Revisar que a sea cuadrada
-            // Revisar que b tenga una sola columna
+            if a.cols() == 0 {
+                return Err("La matriz A no puede ser vacía".to_string());
+            }
 
             if a.rows() != b.rows() {
                 return Err("La cantidad de filas de A y b no coincide".to_string());
@@ -201,143 +206,218 @@ pub fn linsolve(a: &Value, b: &Value) -> FnResult {
                 return Err("La matriz b debe tener una sola columna".to_string());
             }
 
-            if a.is_square() && !nearly_equal(a.determinant()?, 0.0) {
-                // A es No singular ( invertible ) el sistema es compatible determinado
-                // Ax=b
-                // x=A^(-1)b
-                return Ok(Value::Matrix(Matrix::multiply(&a.inverse()?, b)?));
+            let inverse = a.inverse();
+            if let Ok(inverse) = inverse {
+                // Si existe la inversa de A, A no es singular y, por ende,
+                // el sistema es compatible determinado. x = A^(-1)b
+
+                println!("El sistema es compatible determinado");
+                return Ok(Value::Matrix(Matrix::multiply(&inverse, b)?));
             }
 
-            // Creo la matriz ecuacion (A|b)
-
-            // le sumo 1 a cols por el vector B
             let rows = a.rows();
-            let cols = a.cols() + 1;
-            let mut matrix = Matrix::new(rows, cols);
+            let cols = a.cols();
+            // Creo la matriz aumentada (A|b)
+            let mut matrix = Matrix::new(rows, cols + 1);
 
-            // asigno los valores de A en la matriz
+            // Copio los valores de A en la matriz
             for (row, col, val) in a {
                 matrix.set(row, col, val)?;
             }
 
-            // asigno los valores de b en la matriz
+            // Copio los valores de b en la matriz
             for i in 0..rows {
-                matrix.set(i, cols - 1, b.get(i, 0)?)?
+                matrix.set(i, cols, b.get(i, 0)?)?
             }
 
-            let mut k = 0;
-            while k < rows && k < cols {
-                // Obtengo el elemento de la diagonal (Akk, que será el pivote)
-                let mut pivot = matrix.get(k, k).unwrap();
+            // Recorro la diagonal con un i y un j.
+            // El i es el índice de la fila y el j el de la columna.
+            //
+            // La estrategia es buscar la primera fila tal que Akj != 0 e intercambiarla con la fila i.
+            // Si no existe tal fila, se avanza a la columna siguiente y se repite el proceso.
+            //
+            // Una vez encontrado el pivote, se permuta y se divide cada elemento de la fila i por Aij.
+            // Así, Aij = 1. Luego, se resta a cada fila k != i la fila i multiplicada por Akj. Así, los elementos
+            // de la columna j quedan en 0 para esas filas.
+            //
+            // Todo esto para que quede la matriz en forma escalonada reducida de Gauss-Jordan, la cual
+            // será analizada más adelante.
+
+            let mut i: usize = 0;
+            let mut j: usize = 0;
+            while i < rows && j < cols {
+                // Obtengo el elemento de la diagonal (Aij, que será el pivote)
+                let mut pivot = matrix.get(i, j).unwrap();
                 if nearly_equal(pivot, 0.0) {
-                    // Busco la primera fila tal que Aik != 0
+                    // Busco la primera fila tal que Akj != 0
                     let mut found = false;
-                    // Solo busco en las filas k+1 a n-1, ya que las filas anteriores ya están en 0
-                    let mut i = k + 1;
-                    while !found && i < rows {
-                        pivot = matrix.get(i, k).unwrap();
+                    // Solo busco en las filas i+1 a rows-1, ya que las filas anteriores ya están en 0
+                    let mut k = i + 1;
+                    while !found && k < rows {
+                        pivot = matrix.get(k, j).unwrap();
                         if nearly_equal(pivot, 0.0) {
-                            i += 1;
+                            k += 1;
                         } else {
                             found = true;
                         }
                     }
                     if !found {
-                        // Nota: este mensaje no se debería mostrar nunca, ya que el determinante
-                        // debería ser 0. Como nadie quiere un bucle infinito, lo dejo por las dudas.
-                        k += 1;
+                        // No encontré ningún elemento no nulo en la columna j
+                        // Por lo tanto, paso a la siguiente columna
+                        j += 1;
                         continue;
                     } else {
-                        for j in 0..cols {
-                            let tmp = matrix.get(k, j)?;
-                            matrix.set(k, j, matrix.get(i, j)?)?;
-                            matrix.set(i, j, tmp)?;
-                        }
+                        // Permuto la fila k con la fila i
+                        matrix.swap_rows(k, i)?;
                     }
                 }
 
-                // Ahora, toca dividir cada elemento de la fila k por Akk.
-                // Creo la matriz elemental que divide la fila k por Akk
-                let scale = 1.0 / matrix.get(k, k)?;
+                // Divido la fila i por Aij, así Aij = 1
+                let factor = 1.0 / pivot;
+                matrix.scale_row(i, factor)?;
 
-                for j in 0..cols {
-                    matrix.set(k, j, matrix.get(k, j)? * scale)?;
-                }
+                // Ahora, toca restar a cada fila k != i la fila i multiplicada por Akj.
+                for k in 0..rows {
+                    if k != i {
+                        // factor = -Akj
+                        let factor = -matrix.get(k, j)?;
 
-                // Ahora, toca restar a cada fila i != k la fila k multiplicada por Aik.
-                let mut i = 0;
-                while i < rows && i < cols {
-                    if i != k {
-                        let factor = matrix.get(i, k)? / matrix.get(k, k).unwrap();
-
-                        for j in 0..cols {
-                            let new_value = matrix.get(i, j)? - factor * matrix.get(k, j)?;
-                            matrix.set(i, j, new_value)?;
-                        }
+                        // Sumo a cada elemento de la fila k la fila i multiplicada por el factor,
+                        // así los elementos de la columna k quedan en 0.
+                        matrix.add_row(k, i, factor)?;
                     }
-                    i += 1;
                 }
-                k += 1;
+
+                // Avanzo en diagonal
+                i += 1;
+                j += 1;
             }
 
-            // Reviso que la diagonal sean todos numeros distintos de cero
-            let mut k = 0;
-            let mut diagonal_not_cero = true;
-            while k < rows && k < cols - 1 {
-                // si la diagonal tiene un cero diagonal not cero = false
-                if nearly_equal(matrix.get(k, k)?, 0.0) {
-                    diagonal_not_cero = false;
+            // Ahora, la matriz está en forma escalonada reducida de Gauss-Jordan.
+
+            // Por cómo se construyó la matriz, si existen filas nulas, estas serán las últimas.
+            // Así, empezando desde la última fila, compruebo que todas las filas nulas sean de la forma
+            // 0 ... 0 | b con b != 0. Si esto no se cumple, el sistema es incompatible.
+
+            i = rows - 1;
+            while i > 0 {
+                let mut row_all_ceros = true;
+                j = 0;
+                while row_all_ceros && j < cols {
+                    if !nearly_equal(matrix.get(i, j)?, 0.0) {
+                        row_all_ceros = false;
+                    }
+                    j += 1;
+                }
+
+                if !row_all_ceros {
+                    // La fila no es nula, por lo que ninguna de las filas restantes será nula.
+                    // Por lo tanto, el sistema es compatible.
                     break;
                 }
-                k += 1;
+
+                // La fila es nula, por lo que compruebo que b != 0
+
+                let b = matrix.get(i, cols)?;
+                if !nearly_equal(b, 0.0) {
+                    // La fila es nula y b != 0, por lo que el sistema es incompatible.
+                    return Err("El sistema es incompatible".to_string());
+                }
+
+                i -= 1;
             }
 
-            // Miro que las ultima fila de A sea de ceros
-            let mut row_all_ceros = true;
-            let mut index_col_cero: i32 = -1;
-            let mut index_row_cero: i32 = -1;
-            for k in (0..rows).rev() {
+            // Para este punto, el sistema es compatible.
+            // Para saber si es determinado o indeterminado, nos podemos aprovechar del índice i
+            // que nos indica la última fila no nula.
+            //
+            // Si i + 1 < cols, el sistema es indeterminado.
+            // Si i + 1 = cols, el sistema es determinado.
+            //
+            // Por como se construyó la matriz, si la última fila no nula es la fila coincide con
+            // la cantidad de variables, el sistema es determinado, ya que habrá quedado una diagonal
+            // de unos y el resto de la matriz será 0.
+
+            if i == cols - 1 {
+                // El sistema es determinado
+
+                // Obtengo la única solución del sistema, que es la última columna de la matriz.
+                let mut solution = Matrix::new(cols, 1);
                 for i in 0..cols {
-                    // miro las filas de abajo para arriba, chequeo que toda la fila sea 0
-                    // en caso de que no sea 0 reviso que el indice encontrado sea de la matriz A o de b
-                    // si el indice esta en la matriz A forma n sistema compatile indeterminado.
-                    // si le indice esta en la matriz b forma un sistema incompatible ya que no hay valor
-                    //   que puedan tomar las incognitas para igualar este valor (todas estan multiplicadas por cero)
-                    if matrix.get(k, i)? != 0.0 {
-                        row_all_ceros = false;
-                        index_row_cero = k as i32;
-                        index_col_cero = i as i32;
+                    solution.set(i, 0, matrix.get(i, cols)?)?;
+                }
+
+                println!("El sistema es compatible determinado");
+                return Ok(Value::Matrix(solution));
+            } else {
+                // El sistema es indeterminado
+
+                // Obtengo el vector solución.
+                // Como hay variables independientes, este será un vector de Strings que será de la forma
+                // x1 = 1
+                // x2 = 5
+                // x3 = 3 + 7*x4
+
+                let mut vars = Vec::<String>::new();
+
+                // Recorro la matriz y obtengo los valores de las variables
+                i = 0;
+                while i < rows {
+                    let mut j: usize = 0;
+                    let b = matrix.get(i, cols)?;
+
+                    // Busco el primer elemento no nulo de la fila
+                    while j < cols && nearly_equal(matrix.get(i, j)?, 0.0) {
+                        j += 1;
+                    }
+
+                    if j == cols {
+                        // Es una fila nula, por lo que ya no hay nada más que analizar.
                         break;
                     }
+
+                    // La variable dependiente será xj (es decir, "x1", "x2", etc.)
+                    let mut var = format!("x{} = {}", j + 1, format_float(b));
+
+                    // Busco variables independientes
+                    j += 1;
+                    while j < cols {
+                        let x = matrix.get(i, j)?;
+                        if !nearly_equal(x, 0.0) {
+                            // Si x != 0, entonces la variable independiente es xj
+
+                            // Como el despeje que se hace es
+                            // x + y = b => x = b - y, el signo se invierte
+                            let sign = if x > 0.0 { " - " } else { " + " };
+                            let factor = format_float(x.abs());
+                            var.push_str(&format!(" {sign} {factor}*x{n}", n = (j + 1)));
+                        }
+
+                        j += 1;
+                    }
+                    vars.push(var);
+                    i += 1;
                 }
-                if !row_all_ceros {
-                    break;
+
+                println!("El sistema es compatible indeterminado. El conjunto solución es:\n");
+
+                // Imprimo el conjunto solución
+                for var in &vars {
+                    println!("{}", var);
                 }
+
+                println!(
+                    "\nEl sistema tiene {} variables dependientes y {} variables independientes\n",
+                    vars.len(),
+                    cols - vars.len(),
+                );
+
+                return Err("El sistema no tiene una única solución".to_string());
             }
-
-            if !row_all_ceros {
-                if index_col_cero == (cols - 1) as i32 {
-                    println!("[!] Sistema Incompatible");
-                    return Ok(Value::Scalar(0.0));
-                } else if !(index_row_cero == (cols - 2) as i32 && diagonal_not_cero) {
-                    println!("[!] Sistema Compatible Indeterminado");
-                    return Ok(Value::Scalar(0.0));
-                }
-            }
-
-            // creo matriz CS de sistema determinado
-
-            let mut result = Matrix::new(a.cols(),1);
-            for i in 0..a.cols() {
-                result.set(i, 0, matrix.get(i, cols -1)?)?
-            }
-
-            return Ok(Value::Matrix(result));
-
         } else {
-            Err("[!] b debe ser una matriz.".to_string())
+            Err("b debe ser una matriz.".to_string())
         }
     } else {
-        Err("[!] A debe ser una matriz".to_string())
+        Err("A debe ser una matriz".to_string())
     }
 }
