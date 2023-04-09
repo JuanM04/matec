@@ -25,10 +25,15 @@ pub fn nearly_equal(a: f64, b: f64) -> bool {
 /// Formatea un número flotante para que se parezca a un entero si es
 /// posible.
 pub fn format_float(n: f64) -> String {
-    let rounded = n.round();
-    if nearly_equal(n, rounded) {
-        format!("{}", rounded)
+    if nearly_equal(n, 0.0) {
+        // Previene el caso "-0"
+        return "0".to_string();
     } else {
-        format!("{:.4}", n)
+        let rounded = n.round();
+        if nearly_equal(n, rounded) {
+            format!("{}", rounded)
+        } else {
+            format!("{:.4}", n)
+        }
     }
 }
