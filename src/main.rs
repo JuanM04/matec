@@ -289,7 +289,7 @@ fn show_menu () {
 
 \tNombre\t\tDescripción         
 
-\t?, help\t\tMostrar este menu
+\t?, help\t\tMostrar comandos disponibles
 \tclc\t\tLimpia la consola
 \texit\t\tTermina el programa
 
