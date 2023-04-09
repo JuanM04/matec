@@ -6,6 +6,7 @@ mod value;
 
 use matrix::Matrix;
 use parser::{parse, AstNode};
+use pest::error::InputLocation;
 use std::{
     collections::HashMap,
     io::{stdin, stdout, Write},
@@ -78,7 +79,17 @@ fn main() {
                 }
             }
             // Si hay un error de sintáxis, se imprime el error.
-            Err(e) => println!("Error de sintáxis: {:#?}", e),
+            Err(e) => {
+                match e.location {
+                    InputLocation::Pos(pos) => {
+                        println!("  {}^", " ".repeat(pos));
+                    }
+                    InputLocation::Span((start, end)) => {
+                        println!("  {}{}", " ".repeat(start), "".repeat(end - start));
+                    }
+                }
+                println!("Error de sintáxis. Verifique que la expresión esté bien escrita.");
+            }
         };
     }
 }
