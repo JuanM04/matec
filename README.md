@@ -37,10 +37,11 @@ Se necesita tener [Rust](https://www.rust-lang.org/es/) instalado. Luego, para c
 
 ### Comandos
 
-| Nombre | Descripción         |
-| :----- | :------------------ |
-| `exit` | Termina el programa |
-| `clc`  | Limpia la consola   |
+| Nombre | Descripción                  |
+| :----- | :------------------          |
+| `help` | Mostrar comandos disponibles |
+| `exit` | Termina el programa          |
+| `clc`  | Limpia la consola            |
 
 ### Variables
 
