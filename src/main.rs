@@ -31,7 +31,7 @@ fn main() {
     println!("Por Majoros, Lorenzo; y Seery, Juan Martín");
     println!("Para Matemática C - 2023");
     println!("");
-    println!("Para los comandos disponibles escriba \"help\"");
+    println!("Para ver los comandos disponibles escriba \"help\"");
     println!("Para salir, escriba \"exit\"");
     println!("");
     println!("");
