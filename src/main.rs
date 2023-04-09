@@ -53,7 +53,7 @@ fn main() {
         } else if input == "?" || input == "help" {
             show_menu();
             continue;
-        } 
+        }
 
         // Se parsea la entrada en texto a un AST (ver parser/mod.rs)
         match parse(&input) {
@@ -282,22 +282,17 @@ fn evaluate_expression(expr: &AstNode, variables: &Variables) -> Result<Value, S
     }
 }
 
-fn show_menu () {
-    println!("Trabajo práctico para Matemática C, 2023.\nPor Majoros, Lorenzo y Seery, Juan Martín;
-
-
-    Comandos
-
-    Nombre     Descripción         
+fn show_menu() {
+    println!(
+        "
+    Comandos     
 
     ?, help    Mostrar comandos disponibles
     clc        Limpia la consola
     exit       Termina el programa
 
 
-    Operaciones
-
-    Nombre             Descripción                         
+    Operaciones                       
 
     +                  Suma                                     
     -                  Resta                                    
@@ -316,5 +311,6 @@ fn show_menu () {
     log(x)             Logarítmo natural                        
     det(A)             Determinante                             
     linsolve(A, b)     Resuelve un sistema de ecuaciones lineal 
-    "); 
+    "
+    );
 }
