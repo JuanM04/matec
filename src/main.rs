@@ -31,6 +31,7 @@ fn main() {
     println!("Por Majoros, Lorenzo; y Seery, Juan Martín");
     println!("Para Matemática C - 2023");
     println!("");
+    println!("Para los comandos disponibles escriba \"help\"");
     println!("Para salir, escriba \"exit\"");
     println!("");
     println!("");
@@ -49,7 +50,10 @@ fn main() {
         } else if input == "clc" {
             print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
             continue;
-        }
+        } else if input == "?" || input == "help" {
+            show_menu();
+            continue;
+        } 
 
         // Se parsea la entrada en texto a un AST (ver parser/mod.rs)
         match parse(&input) {
@@ -276,4 +280,40 @@ fn evaluate_expression(expr: &AstNode, variables: &Variables) -> Result<Value, S
             }
         }
     }
+}
+
+fn show_menu () {
+    println!("Trabajo práctico para Matemática C, 2023.\nPor Majoros, Lorenzo y Seery, Juan Martín;
+
+\tComandos
+
+\tNombre\t\tDescripción         
+
+\t?, help\t\tMostrar este menu
+\tclc\t\tLimpia la consola
+\texit\t\tTermina el programa
+
+
+\tOperaciones
+
+\tNombre\t\t\tDescripción                         
+
+\t+\t\t\tSuma                                     
+\t-\t\t\tResta                                    
+\t*\t\t\tMultiplicación                           
+\t/\t\t\tDivisión                                 
+\t\\\t\t\tDivisión a la derecha (a/b = b\\a)      
+\t^, pow(a, n)\t\tPotenciación                             
+\t!, factorial(n)\t\tFactorial                                
+\t', transpose(A)\t\tTraspuesta de una matriz                 
+\tabs(n)\t\t\tValor absoluto                           
+\tsqrt(n)\t\t\tRaíz cuadrada                           
+\tinv(a)\t\t\tInverso (de un real o de una matriz)     
+\tsin(x)\t\t\tSeno                                     
+\tcos(x)\t\t\tCoseno                                   
+\ttan(x)\t\t\tTangente                                 
+\tlog(x)\t\t\tLogarítmo natural                        
+\tdet(A)\t\t\tDeterminante                             
+\tlinsolve(A, b)\t\tResuelve un sistema de ecuaciones lineal 
+    "); 
 }
