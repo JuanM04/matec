@@ -9,3 +9,7 @@ edition = "2021"
 lazy_static = "1.4.0"
 pest = "2.5.7"
 pest_derive = "2.5.7"
+
+[profile.release]
+opt-level = 3
+strip = true
